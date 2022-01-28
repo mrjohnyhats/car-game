@@ -1,37 +1,16 @@
 class Game{
 	constructor(){
-		if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
+		if (!Detector.webgl){
+			Detector.addGetWebGLMessage();
+		}
 		
-		this.container;
 		this.stats;
-		this.camera;
-		this.scene;
-		this.renderer;
 		this.debug = true;
 		this.debugPhysics = true;
 		this.fixedTimeStep = 1.0/60.0;
-		
-		this.container = document.createElement('div');
-		this.container.style.height = '100%';
-		document.body.appendChild( this.container );
-				
-		this.js = {
-			forward:0,
-			turn:0
-		};
 
-		this.clock = new THREE.Clock();
-
-		this.init();
-		
-		window.onError = function(error){
-			console.error(JSON.stringify(error));
-		}
-	}
-	
-	init() {
 		this.camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 2000 );
-		this.camera.position.set( 10, 10, 10 );
+		this.camera.position.set( 0, 10, 10 );
 
 		this.scene = new THREE.Scene();
 		this.scene.background = new THREE.Color( 0xa0a0a0 );
@@ -40,12 +19,28 @@ class Game{
 		this.renderer.setPixelRatio( window.devicePixelRatio );
 		this.renderer.setSize( window.innerWidth, window.innerHeight );
 		this.renderer.shadowMap.enabled = true;
+
+		this.container = document.createElement('div');
+		this.container.style.height = '100%';
+		document.body.appendChild( this.container );
 		this.container.appendChild( this.renderer.domElement );
 		
-        this.helper = new CannonHelper(this.scene);
+				
+		this.js = {
+			forward:0,
+			turn:0
+		};
+
+		this.clock = new THREE.Clock();
+
+		this.helper = new CannonHelper(this.scene);
         this.helper.addLights(this.renderer);
         
-		window.addEventListener( 'resize', function(){ game.onWindowResize(); }, false );
+		window.addEventListener('resize', function(){ game.onWindowResize(); }, false );
+		window.addEventListener('keydown', this.keydown.bind(this))
+		window.addEventListener('keyup', this.keyup.bind(this))
+
+		
 
 		// stats
 		if (this.debug){
@@ -59,11 +54,13 @@ class Game{
 		});
         
         this.initPhysics();
+		
+		window.onError = function(error){
+			console.error(JSON.stringify(error));
+		}
 	}
 	
-	initPhysics(){
-		this.physics = {};
-		
+	initPhysics(){		
         const world = new CANNON.World();
 		this.world = world;
 		
@@ -74,7 +71,7 @@ class Game{
 		const groundMaterial = new CANNON.Material("groundMaterial");
 		const wheelMaterial = new CANNON.Material("wheelMaterial");
 		const wheelGroundContactMaterial = new CANNON.ContactMaterial(wheelMaterial, groundMaterial, {
-			friction: 0.3,
+			friction: 0.1,
 			restitution: 0,
 			contactEquationStiffness: 1000
 		});
@@ -83,9 +80,10 @@ class Game{
 		world.addContactMaterial(wheelGroundContactMaterial);
 
 		const chassisShape = new CANNON.Box(new CANNON.Vec3(1, 0.5, 2));
-		const chassisBody = new CANNON.Body({ mass: 150, material: groundMaterial });
+		// const chassisBody = new CANNON.Body({ mass: 150, material: groundMaterial });
+		const chassisBody = new CANNON.Body({ mass: 1500, material: groundMaterial });
 		chassisBody.addShape(chassisShape);
-		chassisBody.position.set(0, 4, 0);
+		chassisBody.position.set(0, 10, 0);
 		this.helper.addVisual(chassisBody, 'car');
 		
 		this.followCam = new THREE.Object3D();
@@ -116,7 +114,7 @@ class Game{
 			chassisBody: chassisBody,
 			indexRightAxis: 0,
 			indexUpAxis: 1,
-			indeForwardAxis: 2
+			indexForwardAxis: 2
 		});
 
 		options.chassisConnectionPointLocal.set(1, 0, -1);
@@ -191,16 +189,40 @@ class Game{
 		this.js.forward = forward;
 		this.js.turn = -turn;
 	}
+
+	keydown(evt){
+		if(evt.code == 'KeyW'){
+			this.js.forward = 1
+		}
+		if(evt.code == 'KeyS'){
+			this.js.forward = -1
+		}
+		if(evt.code == 'KeyA'){
+			this.js.turn = 0.5
+		}
+		if(evt.code == 'KeyD'){
+			this.js.turn = -0.5
+		}
+	}
+
+	keyup(evt){
+		if(evt.code == 'KeyS' || evt.code == 'KeyW'){
+			this.js.forward = 0
+		}
+		if(evt.code == 'KeyA' || evt.code == 'KeyD'){
+			this.js.turn = 0
+		}
+	}
 		
     updateDrive(forward=this.js.forward, turn=this.js.turn){
 		
 		const maxSteerVal = 0.5;
-        const maxForce = 1000;
-        const brakeForce = 10;
+        const maxForce = 5000;
+        const brakeForce = 50;
 		 
 		const force = maxForce * forward;
 		const steer = maxSteerVal * turn;
-		 
+
 		if (forward!=0){
 			this.vehicle.setBrake(0, 0);
 			this.vehicle.setBrake(0, 1);
@@ -224,14 +246,22 @@ class Game{
 		this.camera.aspect = window.innerWidth / window.innerHeight;
 		this.camera.updateProjectionMatrix();
 
-		this.renderer.setSize( window.innerWidth, window.innerHeight );
-
+		this.renderer.setSize(window.innerWidth, window.innerHeight);
 	}
 
 	updateCamera(){
+		// this.camera.position.lerp(this.followCam.getWorldPosition(new THREE.Vector3()), 1);
 		this.camera.position.lerp(this.followCam.getWorldPosition(new THREE.Vector3()), 0.05);
-		this.camera.lookAt(this.vehicle.chassisBody.threemesh.position);
-        if (this.helper.sun!=undefined){
+		// var FCPos = new THREE.Vector3()
+		// this.followCam.getWorldPosition(FCPos)
+		// this.camera.position.set(FCPos.x,FCPos.y,FCPos.z)
+		var lookAtPos = this.vehicle.chassisBody.threemesh.position.clone()
+		var lookAtOffset = new THREE.Vector3()
+		this.vehicle.chassisBody.threemesh.getWorldDirection(lookAtOffset)
+		lookAtOffset = lookAtOffset.multiplyScalar(-10)
+		lookAtPos = lookAtPos.add(lookAtOffset)
+		this.camera.lookAt(lookAtPos);
+        if (this.helper.sun != undefined){
 			this.helper.sun.position.copy( this.camera.position );
 			this.helper.sun.position.y += 10;
 		}
@@ -256,7 +286,9 @@ class Game{
 		
 		this.renderer.render( this.scene, this.camera );
 
-		if (this.stats!=undefined) this.stats.update();
+		if (this.stats != undefined){
+			this.stats.update();
+		}
 
 	}
 }
@@ -269,15 +301,21 @@ class JoyStick{
 		thumb.style.cssText = "position: absolute; left: 20px; top: 20px; width: 40px; height: 40px; border-radius: 50%; background: #fff;";
 		circle.appendChild(thumb);
 		document.body.appendChild(circle);
+
 		this.domElement = thumb;
+
 		this.maxRadius = options.maxRadius || 40;
 		this.maxRadiusSquared = this.maxRadius * this.maxRadius;
+
 		this.onMove = options.onMove;
+
 		this.game = options.game;
+
 		this.origin = { left:this.domElement.offsetLeft, top:this.domElement.offsetTop };
 		this.rotationDamping = options.rotationDamping || 0.06;
 		this.moveDamping = options.moveDamping || 0.01;
-		if (this.domElement!=undefined){
+
+		if (this.domElement != undefined){
 			const joystick = this;
 			if ('ontouchstart' in window){
 				this.domElement.addEventListener('touchstart', function(evt){ joystick.tap(evt); });
@@ -331,7 +369,9 @@ class JoyStick{
 		const forward = -(top - this.origin.top + this.domElement.clientHeight/2)/this.maxRadius;
 		const turn = (left - this.origin.left + this.domElement.clientWidth/2)/this.maxRadius;
 		
-		if (this.onMove!=undefined) this.onMove.call(this.game, forward, turn);
+		if (this.onMove!=undefined){
+			this.onMove.call(this.game, forward, turn);
+		}
 	}
 	
 	up(evt){
@@ -455,7 +495,9 @@ class CannonHelper{
 		}
 		// What geometry should be used?
 		let mesh;
-		if(body instanceof CANNON.Body) mesh = this.shape2Mesh(body, castShadow, receiveShadow);
+		if(body instanceof CANNON.Body){
+			mesh = this.shape2Mesh(body, castShadow, receiveShadow);
+		}
 
 		if(mesh) {
 			// Add body
@@ -614,5 +656,8 @@ class CannonHelper{
                 body.threemesh.quaternion.copy(body.quaternion);
             }
         });
+    }
+    cannonToThreeVector(cVec){
+    	return new THREE.Vector3(cVec.x,cVec.y,cVec.z)
     }
 }
