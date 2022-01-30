@@ -251,15 +251,27 @@ class Game{
 
 	updateCamera(){
 		// this.camera.position.lerp(this.followCam.getWorldPosition(new THREE.Vector3()), 1);
-		this.camera.position.lerp(this.followCam.getWorldPosition(new THREE.Vector3()), 0.05);
+		// this.camera.position.lerp(this.followCam.getWorldPosition(new THREE.Vector3()), 0.05);
+		var dirMatrix = new THREE.Matrix4()
+		dirMatrix.extractRotation(this.followCam.matrix)
+		var dir = (new THREE.Vector3(0,0,1)).applyMatrix4(dirMatrix)
+
+		var camPos = THREE.Vector3()
+		this.followCam.getWorldPosition(camPos)
+		camPos.add(dir.multiplyScalar(-20))
+		this.camera.position.x = camPos.x
+		this.camera.position.y = camPos.y
+		this.camera.position.z = camPos.z
 		// var FCPos = new THREE.Vector3()
 		// this.followCam.getWorldPosition(FCPos)
 		// this.camera.position.set(FCPos.x,FCPos.y,FCPos.z)
 		var lookAtPos = this.vehicle.chassisBody.threemesh.position.clone()
-		var lookAtOffset = new THREE.Vector3()
-		this.vehicle.chassisBody.threemesh.getWorldDirection(lookAtOffset)
-		lookAtOffset = lookAtOffset.multiplyScalar(-10)
-		lookAtPos = lookAtPos.add(lookAtOffset)
+		// var lookAtOffset = new THREE.Vector3()
+		// this.vehicle.chassisBody.threemesh.getWorldDirection(lookAtOffset)
+		// lookAtOffset = lookAtOffset.multiplyScalar(-10)
+		// lookAtPos = lookAtPos.add(lookAtOffset)
+
+
 		this.camera.lookAt(lookAtPos);
         if (this.helper.sun != undefined){
 			this.helper.sun.position.copy( this.camera.position );
