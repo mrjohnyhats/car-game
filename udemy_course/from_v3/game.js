@@ -86,10 +86,6 @@ class Game{
 		chassisBody.position.set(0, 10, 0);
 		this.helper.addVisual(chassisBody, 'car');
 		
-		this.followCam = new THREE.Object3D();
-		this.followCam.position.copy(this.camera.position);
-		this.scene.add(this.followCam);
-		this.followCam.parent = chassisBody.threemesh;
         this.helper.shadowTarget = chassisBody.threemesh;
 
 		const options = {
@@ -97,7 +93,8 @@ class Game{
 			directionLocal: new CANNON.Vec3(0, -1, 0),
 			suspensionStiffness: 30,
 			suspensionRestLength: 0.3,
-			frictionSlip: 5,
+			frictionSlip: 10,
+			// frictionSlip: 5,
 			dampingRelaxation: 2.3,
 			dampingCompression: 4.4,
 			maxSuspensionForce: 100000,
@@ -105,8 +102,10 @@ class Game{
 			axleLocal: new CANNON.Vec3(-1, 0, 0),
 			chassisConnectionPointLocal: new CANNON.Vec3(1, 1, 0),
 			maxSuspensionTravel: 0.3,
-			customSlidingRotationalSpeed: -30,
-			useCustomSlidingRotationalSpeed: true
+			customSlidingRotationalSpeed: 5,
+			// customSlidingRotationalSpeed: -30,
+			useCustomSlidingRotationalSpeed: false
+			// useCustomSlidingRotationalSpeed: true
 		};
 
 		// Create the vehicle
@@ -158,27 +157,6 @@ class Game{
 		this.vehicle = vehicle;
 
 		var hfLandscape = makeLandscape()
-		// let matrix = [];
-		// let sizeX = 64, sizeY = 64;
-
-		// for (let i = 0; i < sizeX; i++) {
-		// 	matrix.push([]);
-		// 	for (var j = 0; j < sizeY; j++) {
-		// 		var height = Math.cos(i / sizeX * Math.PI * 5) * Math.cos(j/sizeY * Math.PI * 5) * 2 + 2;
-		// 		if(i===0 || i === sizeX-1 || j===0 || j === sizeY-1){
-		// 			height = 3;
-		// 		}
-		// 		matrix[i].push(height);
-		// 	}
-		// }
-
-		// var hfShape = new CANNON.Heightfield(matrix, {
-		// 	elementSize: 100 / sizeX
-		// });
-		// var hfBody = new CANNON.Body({ mass: 0 });
-		// hfBody.addShape(hfShape);
-		// hfBody.position.set(-sizeX * hfShape.elementSize / 2, -4, sizeY * hfShape.elementSize / 2);
-		// hfBody.quaternion.setFromAxisAngle( new CANNON.Vec3(1,0,0), -Math.PI/2);
 		world.add(hfLandscape);
 		this.helper.addVisual(hfLandscape, 'landscape');
 		
@@ -218,7 +196,7 @@ class Game{
 		
 		const maxSteerVal = 0.5;
         const maxForce = 5000;
-        const brakeForce = 50;
+        const brakeForce = 300;
 		 
 		const force = maxForce * forward;
 		const steer = maxSteerVal * turn;
@@ -250,29 +228,9 @@ class Game{
 	}
 
 	updateCamera(){
-		// this.camera.position.lerp(this.followCam.getWorldPosition(new THREE.Vector3()), 1);
-		// this.camera.position.lerp(this.followCam.getWorldPosition(new THREE.Vector3()), 0.05);
-		var dirMatrix = new THREE.Matrix4()
-		dirMatrix.extractRotation(this.followCam.matrix)
-		var dir = (new THREE.Vector3(0,0,1)).applyMatrix4(dirMatrix)
-
-		var camPos = THREE.Vector3()
-		this.followCam.getWorldPosition(camPos)
-		camPos.add(dir.multiplyScalar(-20))
-		this.camera.position.x = camPos.x
-		this.camera.position.y = camPos.y
-		this.camera.position.z = camPos.z
-		// var FCPos = new THREE.Vector3()
-		// this.followCam.getWorldPosition(FCPos)
-		// this.camera.position.set(FCPos.x,FCPos.y,FCPos.z)
 		var lookAtPos = this.vehicle.chassisBody.threemesh.position.clone()
-		// var lookAtOffset = new THREE.Vector3()
-		// this.vehicle.chassisBody.threemesh.getWorldDirection(lookAtOffset)
-		// lookAtOffset = lookAtOffset.multiplyScalar(-10)
-		// lookAtPos = lookAtPos.add(lookAtOffset)
-
-
 		this.camera.lookAt(lookAtPos);
+
         if (this.helper.sun != undefined){
 			this.helper.sun.position.copy( this.camera.position );
 			this.helper.sun.position.y += 10;
@@ -285,7 +243,9 @@ class Game{
 		requestAnimationFrame( function(){ game.animate(); } );
 		
 		const now = Date.now();
-		if (this.lastTime===undefined) this.lastTime = now;
+		if (this.lastTime===undefined){
+			this.lastTime = now;
+		}
 		const dt = (Date.now() - this.lastTime)/1000.0;
 		this.FPSFactor = dt;
 		this.lastTime = now;

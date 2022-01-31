@@ -27,27 +27,27 @@ const makeLandscape = function(){
 			heightMatrix[i].push(height);
 		}
 	}
-	//make big mountain
-	for(let i = 30; i < 90; i++){
-		for(let j = 30; j < 90; j++){
-			var heightAddition = Math.cos((i-60)/90*3/2*Math.PI) * Math.cos((j-60)/90*3/2*Math.PI)*10
-			heightMatrix[i][j] += heightAddition
-		}
-	}
+	// //make big mountain
+	// for(let i = 30; i < 90; i++){
+	// 	for(let j = 30; j < 90; j++){
+	// 		var heightAddition = Math.cos((i-60)/90*3/2*Math.PI) * Math.cos((j-60)/90*3/2*Math.PI)*10
+	// 		heightMatrix[i][j] += heightAddition
+	// 	}
+	// }
 
-	let bigHeightMatrix = []
-	for(let i = 0; i < 512; i++){
-		bigHeightMatrix.push([])
-		for(let j = 0; j < 512; j++){
-			if(i > 100 && i < 228 && j > 100 && j < 228){
-				bigHeightMatrix[i].push(heightMatrix[i-100][j-100])
-			} else {
-				bigHeightMatrix[i].push(1)
-			}
-		}
-	}
+	// let bigHeightMatrix = []
+	// for(let i = 0; i < 512; i++){
+	// 	bigHeightMatrix.push([])
+	// 	for(let j = 0; j < 512; j++){
+	// 		if(i > 100 && i < 228 && j > 100 && j < 228){
+	// 			bigHeightMatrix[i].push(heightMatrix[i-100][j-100])
+	// 		} else {
+	// 			bigHeightMatrix[i].push(1)
+	// 		}
+	// 	}
+	// }
 
-	var hfShape = new CANNON.Heightfield(bigHeightMatrix, {
+	var hfShape = new CANNON.Heightfield(heightMatrix, {
 		elementSize: 2
 		// elementSize: 100 / sizeX
 	});
