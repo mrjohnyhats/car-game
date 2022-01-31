@@ -10,7 +10,7 @@ class Game{
 		this.fixedTimeStep = 1.0/60.0;
 
 		this.camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 2000 );
-		this.camera.position.set( 0, 10, 10 );
+		this.camera.position.set( 0, 5, 10 );
 
 		this.scene = new THREE.Scene();
 		this.scene.background = new THREE.Color( 0xa0a0a0 );
@@ -36,7 +36,7 @@ class Game{
 		this.helper = new CannonHelper(this.scene);
         this.helper.addLights(this.renderer);
         
-		window.addEventListener('resize', function(){ game.onWindowResize(); }, false );
+		window.addEventListener('resize', ()=>{ this.onWindowResize(); }, false );
 		window.addEventListener('keydown', this.keydown.bind(this))
 		window.addEventListener('keyup', this.keyup.bind(this))
 
@@ -55,25 +55,44 @@ class Game{
 
 		this.proxies = {}
 		this.checkpoints = []
+		this.assets;
 		this.car = {
-			chassis: {
-				body
-			}
+			
 		}
 
-		// this.loadAssets()
-        
-        this.initPhysics();
+		this.loadAssets(this.initPhysics.bind(this));
 		
 		window.onError = function(error){
 			console.error(JSON.stringify(error));
 		}
 	}
 
-	loadAssets(){
+	loadAssets(afterCB){
 		const loader = new THREE.FBXLoader()
 
-		loader.load('assets/things.fbx')
+		this.car = {
+			wheels: []
+		}
+
+
+		loader.load('assets/stang.fbx', (object)=>{
+			object.traverse((child)=>{
+				if(child.name == 'body'){
+					this.car.chassis = child
+					this.car.chassis.castShadow = true
+				} else if(child.name.includes('Wheel')){
+					for(var i = 1; i <= 4; i++){
+						if(child.name.includes(i.toString())){
+							this.car.wheels[i-1] = child
+						}
+					}
+				}
+			})
+
+			this.assets = object
+			this.scene.add(object)
+			afterCB()
+		})
 	}
 	
 	initPhysics(){		
@@ -95,19 +114,21 @@ class Game{
 		// We must add the contact materials to the world
 		world.addContactMaterial(wheelGroundContactMaterial);
 
-		const chassisShape = new CANNON.Box(new CANNON.Vec3(1, 0.5, 2));
+		// const chassisShape = new CANNON.Box(new CANNON.Vec3(1, 0.5, 2));
+		const chassisShape = new CANNON.Box(new CANNON.Vec3(2, 1, 4));
 		// const chassisBody = new CANNON.Body({ mass: 150, material: groundMaterial });
-		const chassisBody = new CANNON.Body({ mass: 1500, material: groundMaterial });
+		const chassisBody = new CANNON.Body({ mass: 2000, material: groundMaterial });
 		chassisBody.addShape(chassisShape);
 		chassisBody.position.set(0, 10, 0);
-		this.helper.addVisual(chassisBody, 'car');
+		// this.helper.addVisual(chassisBody, 'car');
+		chassisBody.threemesh = this.car.chassis
 		
         this.helper.shadowTarget = chassisBody.threemesh;
 
 		const options = {
-			radius: 0.5,
+			radius: 0.75,
 			directionLocal: new CANNON.Vec3(0, -1, 0),
-			suspensionStiffness: 30,
+			suspensionStiffness: 50,
 			suspensionRestLength: 0.3,
 			frictionSlip: 10,
 			// frictionSlip: 5,
@@ -115,12 +136,13 @@ class Game{
 			dampingCompression: 4.4,
 			maxSuspensionForce: 100000,
 			rollInfluence:  0.01,
-			axleLocal: new CANNON.Vec3(-1, 0, 0),
+			axleLocal: new CANNON.Vec3(-3, 0, 0),
+			// axleLocal: new CANNON.Vec3(-1, 0, 0),
 			chassisConnectionPointLocal: new CANNON.Vec3(1, 1, 0),
 			maxSuspensionTravel: 0.3,
 			customSlidingRotationalSpeed: 5,
 			// customSlidingRotationalSpeed: -30,
-			useCustomSlidingRotationalSpeed: false
+			useCustomSlidingRotationalSpeed: true
 			// useCustomSlidingRotationalSpeed: true
 		};
 
@@ -132,30 +154,32 @@ class Game{
 			indexForwardAxis: 2
 		});
 
-		options.chassisConnectionPointLocal.set(1, 0, -1);
+		options.chassisConnectionPointLocal.set(2, -1, -3);
 		vehicle.addWheel(options);
 
-		options.chassisConnectionPointLocal.set(-1, 0, -1);
+		options.chassisConnectionPointLocal.set(-2, -1, -3);
 		vehicle.addWheel(options);
 
-		options.chassisConnectionPointLocal.set(1, 0, 1);
+		options.chassisConnectionPointLocal.set(2, -1, 3);
 		vehicle.addWheel(options);
 
-		options.chassisConnectionPointLocal.set(-1, 0, 1);
+		options.chassisConnectionPointLocal.set(-2, -1, 3);
 		vehicle.addWheel(options);
 
 		vehicle.addToWorld(world);
 
 		const wheelBodies = [];
-		vehicle.wheelInfos.forEach((wheel)=>{
+		vehicle.wheelInfos.forEach((wheel, i)=>{
 			// const cylinderShape = new CANNON.Cylinder(wheel.radius, wheel.radius, wheel.radius / 2, 20);
 			// const wheelBody = new CANNON.Body({ mass: 1, material: wheelMaterial });
 			// const q = new CANNON.Quaternion();
 			// q.setFromAxisAngle(new CANNON.Vec3(0, 1, 0), Math.PI / 2);
 			// wheelBody.addShape(cylinderShape, new CANNON.Vec3(), q);
 			const wheelBody = makeWheelBody(wheel, wheelMaterial)
+			// this.helper.addVisual(wheelBody, 'wheel')
+			wheelBody.threemesh = this.car.wheels[i]
 			wheelBodies.push(wheelBody);
-			this.helper.addVisual(wheelBody, 'wheel');
+
 		});
 
 		// Update wheels
@@ -176,6 +200,10 @@ class Game{
 		world.add(hfLandscape);
 		this.helper.addVisual(hfLandscape, 'landscape');
 		
+		if(this.debugPhysics){
+			this.debugRenderer = new THREE.CannonDebugRenderer(this.scene, this.world)
+		}
+
 		this.animate();
 	}
 	
@@ -210,14 +238,15 @@ class Game{
 		
     updateDrive(forward=this.js.forward, turn=this.js.turn){
 		
-		const maxSteerVal = 0.5;
-        const maxForce = 5000;
+		const maxSteerVal = 0.8;
+		// const maxSteerVal = 0.5;
+        const maxForce = 4000;
         const brakeForce = 300;
 		 
 		const force = maxForce * forward;
 		const steer = maxSteerVal * turn;
 
-		if (forward!=0){
+		if (forward > 0){
 			this.vehicle.setBrake(0, 0);
 			this.vehicle.setBrake(0, 1);
 			this.vehicle.setBrake(0, 2);
@@ -225,11 +254,16 @@ class Game{
 
 			this.vehicle.applyEngineForce(force, 2);
 			this.vehicle.applyEngineForce(force, 3);
-	 	}else{
+	 	} else if(forward < 0){
 			this.vehicle.setBrake(brakeForce, 0);
 			this.vehicle.setBrake(brakeForce, 1);
 			this.vehicle.setBrake(brakeForce, 2);
 			this.vehicle.setBrake(brakeForce, 3);
+		} else {
+			this.vehicle.setBrake(0, 0);
+			this.vehicle.setBrake(0, 1);
+			this.vehicle.setBrake(0, 2);
+			this.vehicle.setBrake(0, 3);
 		}
 		
 		this.vehicle.setSteeringValue(steer, 0);
@@ -271,6 +305,10 @@ class Game{
 		
 		this.updateDrive();
 		this.updateCamera();
+
+		if(this.debugRenderer != undefined){
+			this.debugRenderer.update()
+		}
 		
 		this.renderer.render( this.scene, this.camera );
 
