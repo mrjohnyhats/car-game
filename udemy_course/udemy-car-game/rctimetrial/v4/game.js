@@ -223,7 +223,7 @@ class Game{
 						child.castShadow = true;
 						receiveShadow = false;
 					}else if (child.name.includes("Bonnet")){
-						game.car.bonnet.push(child); 
+						game.car.bonnet.push(child);
 						child.visible = false;
 						child.castShadow = true;
 						receiveShadow = false;

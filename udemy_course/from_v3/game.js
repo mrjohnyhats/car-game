@@ -52,12 +52,28 @@ class Game{
 			game:this,
 			onMove:this.joystickCallback
 		});
+
+		this.proxies = {}
+		this.checkpoints = []
+		this.car = {
+			chassis: {
+				body
+			}
+		}
+
+		// this.loadAssets()
         
         this.initPhysics();
 		
 		window.onError = function(error){
 			console.error(JSON.stringify(error));
 		}
+	}
+
+	loadAssets(){
+		const loader = new THREE.FBXLoader()
+
+		loader.load('assets/things.fbx')
 	}
 	
 	initPhysics(){		
