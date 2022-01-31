@@ -28,7 +28,8 @@ class Game{
 				
 		this.js = {
 			forward:0,
-			turn:0
+			turn:0,
+			eBrake: false
 		};
 
 		this.clock = new THREE.Clock();
@@ -48,10 +49,10 @@ class Game{
 			this.container.appendChild( this.stats.dom );
 		}
 		
-		this.joystick = new JoyStick({
-			game:this,
-			onMove:this.joystickCallback
-		});
+		// this.joystick = new JoyStick({
+		// 	game:this,
+		// 	onMove:this.joystickCallback
+		// });
 
 		this.proxies = {}
 		this.checkpoints = []
@@ -75,7 +76,7 @@ class Game{
 		}
 
 
-		loader.load('assets/stang.fbx', (object)=>{
+		loader.load('assets/stang_2.fbx', (object)=>{
 			object.traverse((child)=>{
 				if(child.name == 'body'){
 					this.car.chassis = child
@@ -106,7 +107,7 @@ class Game{
 		const groundMaterial = new CANNON.Material("groundMaterial");
 		const wheelMaterial = new CANNON.Material("wheelMaterial");
 		const wheelGroundContactMaterial = new CANNON.ContactMaterial(wheelMaterial, groundMaterial, {
-			friction: 0.1,
+			friction: 0.01,
 			restitution: 0,
 			contactEquationStiffness: 1000
 		});
@@ -130,17 +131,18 @@ class Game{
 			directionLocal: new CANNON.Vec3(0, -1, 0),
 			suspensionStiffness: 50,
 			suspensionRestLength: 0.3,
-			frictionSlip: 10,
+			frictionSlip: 5,
 			// frictionSlip: 5,
 			dampingRelaxation: 2.3,
 			dampingCompression: 4.4,
 			maxSuspensionForce: 100000,
-			rollInfluence:  0.01,
-			axleLocal: new CANNON.Vec3(-3, 0, 0),
+			rollInfluence:  0.1,
+			// rollInfluence:  0.01,
+			axleLocal: new CANNON.Vec3(-2, 0, 0),
 			// axleLocal: new CANNON.Vec3(-1, 0, 0),
 			chassisConnectionPointLocal: new CANNON.Vec3(1, 1, 0),
 			maxSuspensionTravel: 0.3,
-			customSlidingRotationalSpeed: 5,
+			customSlidingRotationalSpeed: 3,
 			// customSlidingRotationalSpeed: -30,
 			useCustomSlidingRotationalSpeed: true
 			// useCustomSlidingRotationalSpeed: true
@@ -154,16 +156,16 @@ class Game{
 			indexForwardAxis: 2
 		});
 
-		options.chassisConnectionPointLocal.set(2, -1, -3);
+		options.chassisConnectionPointLocal.set(2, -0.5, -3);
 		vehicle.addWheel(options);
 
-		options.chassisConnectionPointLocal.set(-2, -1, -3);
+		options.chassisConnectionPointLocal.set(-2, -0.5, -3);
 		vehicle.addWheel(options);
 
-		options.chassisConnectionPointLocal.set(2, -1, 3);
+		options.chassisConnectionPointLocal.set(2, -0.5, 3);
 		vehicle.addWheel(options);
 
-		options.chassisConnectionPointLocal.set(-2, -1, 3);
+		options.chassisConnectionPointLocal.set(-2, -0.5, 3);
 		vehicle.addWheel(options);
 
 		vehicle.addToWorld(world);
@@ -175,7 +177,13 @@ class Game{
 			// const q = new CANNON.Quaternion();
 			// q.setFromAxisAngle(new CANNON.Vec3(0, 1, 0), Math.PI / 2);
 			// wheelBody.addShape(cylinderShape, new CANNON.Vec3(), q);
-			const wheelBody = makeWheelBody(wheel, wheelMaterial)
+			let wheelBody
+			if(i == 2 || i == 4){
+				wheelBody = makeWheelBody(wheel, wheelMaterial, 'left')
+				// wheelBody = makeWheelBody(wheel, wheelMaterial, 'right')
+			} else {
+				wheelBody = makeWheelBody(wheel, wheelMaterial, 'left')
+			}
 			// this.helper.addVisual(wheelBody, 'wheel')
 			wheelBody.threemesh = this.car.wheels[i]
 			wheelBodies.push(wheelBody);
@@ -207,10 +215,11 @@ class Game{
 		this.animate();
 	}
 	
-	joystickCallback( forward, turn ){
-		this.js.forward = forward;
-		this.js.turn = -turn;
-	}
+	// joystickCallback( forward, turn, eBrake ){
+	// 	this.js.forward = forward;
+	// 	this.js.turn = -turn;
+	// 	this.js.eBrake = eBrake
+	// }
 
 	keydown(evt){
 		if(evt.code == 'KeyW'){
@@ -218,6 +227,9 @@ class Game{
 		}
 		if(evt.code == 'KeyS'){
 			this.js.forward = -1
+		}
+		if(evt.code == 'KeyE'){
+			this.js.eBrake = true
 		}
 		if(evt.code == 'KeyA'){
 			this.js.turn = 0.5
@@ -234,13 +246,16 @@ class Game{
 		if(evt.code == 'KeyA' || evt.code == 'KeyD'){
 			this.js.turn = 0
 		}
+		if(evt.code == 'KeyE'){
+			this.js.eBrake = false
+		}
 	}
 		
-    updateDrive(forward=this.js.forward, turn=this.js.turn){
+    updateDrive(forward=this.js.forward, turn=this.js.turn, eBrake=this.js.eBrake){
 		
 		const maxSteerVal = 0.8;
 		// const maxSteerVal = 0.5;
-        const maxForce = 4000;
+        const maxForce = 5000;
         const brakeForce = 300;
 		 
 		const force = maxForce * forward;
@@ -254,6 +269,8 @@ class Game{
 
 			this.vehicle.applyEngineForce(force, 2);
 			this.vehicle.applyEngineForce(force, 3);
+			this.vehicle.applyEngineForce(force, 1);
+			this.vehicle.applyEngineForce(force, 0);
 	 	} else if(forward < 0){
 			this.vehicle.setBrake(brakeForce, 0);
 			this.vehicle.setBrake(brakeForce, 1);
@@ -264,6 +281,19 @@ class Game{
 			this.vehicle.setBrake(0, 1);
 			this.vehicle.setBrake(0, 2);
 			this.vehicle.setBrake(0, 3);
+
+			this.vehicle.applyEngineForce(0, 2);
+			this.vehicle.applyEngineForce(0, 3);
+			this.vehicle.applyEngineForce(0, 1);
+			this.vehicle.applyEngineForce(0, 0);
+		}
+
+		if(eBrake){
+			this.vehicle.applyEngineForce(0, 2);
+			this.vehicle.applyEngineForce(0, 3);
+
+			this.vehicle.setBrake(brakeForce, 2);
+			this.vehicle.setBrake(brakeForce, 3);
 		}
 		
 		this.vehicle.setSteeringValue(steer, 0);
@@ -319,101 +349,101 @@ class Game{
 	}
 }
 
-class JoyStick{
-	constructor(options){
-		const circle = document.createElement("div");
-		circle.style.cssText = "position:absolute; bottom:35px; width:80px; height:80px; background:rgba(126, 126, 126, 0.5); border:#444 solid medium; border-radius:50%; left:50%; transform:translateX(-50%);";
-		const thumb = document.createElement("div");
-		thumb.style.cssText = "position: absolute; left: 20px; top: 20px; width: 40px; height: 40px; border-radius: 50%; background: #fff;";
-		circle.appendChild(thumb);
-		document.body.appendChild(circle);
+// class JoyStick{
+// 	constructor(options){
+// 		const circle = document.createElement("div");
+// 		circle.style.cssText = "position:absolute; bottom:35px; width:80px; height:80px; background:rgba(126, 126, 126, 0.5); border:#444 solid medium; border-radius:50%; left:50%; transform:translateX(-50%);";
+// 		const thumb = document.createElement("div");
+// 		thumb.style.cssText = "position: absolute; left: 20px; top: 20px; width: 40px; height: 40px; border-radius: 50%; background: #fff;";
+// 		circle.appendChild(thumb);
+// 		document.body.appendChild(circle);
 
-		this.domElement = thumb;
+// 		this.domElement = thumb;
 
-		this.maxRadius = options.maxRadius || 40;
-		this.maxRadiusSquared = this.maxRadius * this.maxRadius;
+// 		this.maxRadius = options.maxRadius || 40;
+// 		this.maxRadiusSquared = this.maxRadius * this.maxRadius;
 
-		this.onMove = options.onMove;
+// 		this.onMove = options.onMove;
 
-		this.game = options.game;
+// 		this.game = options.game;
 
-		this.origin = { left:this.domElement.offsetLeft, top:this.domElement.offsetTop };
-		this.rotationDamping = options.rotationDamping || 0.06;
-		this.moveDamping = options.moveDamping || 0.01;
+// 		this.origin = { left:this.domElement.offsetLeft, top:this.domElement.offsetTop };
+// 		this.rotationDamping = options.rotationDamping || 0.06;
+// 		this.moveDamping = options.moveDamping || 0.01;
 
-		if (this.domElement != undefined){
-			const joystick = this;
-			if ('ontouchstart' in window){
-				this.domElement.addEventListener('touchstart', function(evt){ joystick.tap(evt); });
-			}else{
-				this.domElement.addEventListener('mousedown', function(evt){ joystick.tap(evt); });
-			}
-		}
-	}
+// 		if (this.domElement != undefined){
+// 			const joystick = this;
+// 			if ('ontouchstart' in window){
+// 				this.domElement.addEventListener('touchstart', function(evt){ joystick.tap(evt); });
+// 			}else{
+// 				this.domElement.addEventListener('mousedown', function(evt){ joystick.tap(evt); });
+// 			}
+// 		}
+// 	}
 	
-	getMousePosition(evt){
-		let clientX = evt.targetTouches ? evt.targetTouches[0].pageX : evt.clientX;
-		let clientY = evt.targetTouches ? evt.targetTouches[0].pageY : evt.clientY;
-		return { x:clientX, y:clientY };
-	}
+// 	getMousePosition(evt){
+// 		let clientX = evt.targetTouches ? evt.targetTouches[0].pageX : evt.clientX;
+// 		let clientY = evt.targetTouches ? evt.targetTouches[0].pageY : evt.clientY;
+// 		return { x:clientX, y:clientY };
+// 	}
 	
-	tap(evt){
-		evt = evt || window.event;
-		// get the mouse cursor position at startup:
-		this.offset = this.getMousePosition(evt);
-		const joystick = this;
-		if ('ontouchstart' in window){
-			document.ontouchmove = function(evt){ joystick.move(evt); };
-			document.ontouchend =  function(evt){ joystick.up(evt); };
-		}else{
-			document.onmousemove = function(evt){ joystick.move(evt); };
-			document.onmouseup = function(evt){ joystick.up(evt); };
-		}
-	}
+// 	tap(evt){
+// 		evt = evt || window.event;
+// 		// get the mouse cursor position at startup:
+// 		this.offset = this.getMousePosition(evt);
+// 		const joystick = this;
+// 		if ('ontouchstart' in window){
+// 			document.ontouchmove = function(evt){ joystick.move(evt); };
+// 			document.ontouchend =  function(evt){ joystick.up(evt); };
+// 		}else{
+// 			document.onmousemove = function(evt){ joystick.move(evt); };
+// 			document.onmouseup = function(evt){ joystick.up(evt); };
+// 		}
+// 	}
 	
-	move(evt){
-		evt = evt || window.event;
-		const mouse = this.getMousePosition(evt);
-		// calculate the new cursor position:
-		let left = mouse.x - this.offset.x;
-		let top = mouse.y - this.offset.y;
-		//this.offset = mouse;
+// 	move(evt){
+// 		evt = evt || window.event;
+// 		const mouse = this.getMousePosition(evt);
+// 		// calculate the new cursor position:
+// 		let left = mouse.x - this.offset.x;
+// 		let top = mouse.y - this.offset.y;
+// 		//this.offset = mouse;
 		
-		const sqMag = left*left + top*top;
-		if (sqMag>this.maxRadiusSquared){
-			//Only use sqrt if essential
-			const magnitude = Math.sqrt(sqMag);
-			left /= magnitude;
-			top /= magnitude;
-			left *= this.maxRadius;
-			top *= this.maxRadius;
-		}
-		// set the element's new position:
-		this.domElement.style.top = `${top + this.domElement.clientHeight/2}px`;
-		this.domElement.style.left = `${left + this.domElement.clientWidth/2}px`;
+// 		const sqMag = left*left + top*top;
+// 		if (sqMag>this.maxRadiusSquared){
+// 			//Only use sqrt if essential
+// 			const magnitude = Math.sqrt(sqMag);
+// 			left /= magnitude;
+// 			top /= magnitude;
+// 			left *= this.maxRadius;
+// 			top *= this.maxRadius;
+// 		}
+// 		// set the element's new position:
+// 		this.domElement.style.top = `${top + this.domElement.clientHeight/2}px`;
+// 		this.domElement.style.left = `${left + this.domElement.clientWidth/2}px`;
 		
-		const forward = -(top - this.origin.top + this.domElement.clientHeight/2)/this.maxRadius;
-		const turn = (left - this.origin.left + this.domElement.clientWidth/2)/this.maxRadius;
+// 		const forward = -(top - this.origin.top + this.domElement.clientHeight/2)/this.maxRadius;
+// 		const turn = (left - this.origin.left + this.domElement.clientWidth/2)/this.maxRadius;
 		
-		if (this.onMove!=undefined){
-			this.onMove.call(this.game, forward, turn);
-		}
-	}
+// 		if (this.onMove!=undefined){
+// 			this.onMove.call(this.game, forward, turn);
+// 		}
+// 	}
 	
-	up(evt){
-		if ('ontouchstart' in window){
-			document.ontouchmove = null;
-			document.touchend = null;
-		}else{
-			document.onmousemove = null;
-			document.onmouseup = null;
-		}
-		this.domElement.style.top = `${this.origin.top}px`;
-		this.domElement.style.left = `${this.origin.left}px`;
+// 	up(evt){
+// 		if ('ontouchstart' in window){
+// 			document.ontouchmove = null;
+// 			document.touchend = null;
+// 		}else{
+// 			document.onmousemove = null;
+// 			document.onmouseup = null;
+// 		}
+// 		this.domElement.style.top = `${this.origin.top}px`;
+// 		this.domElement.style.left = `${this.origin.left}px`;
 		
-		this.onMove.call(this.game, 0, 0);
-	}
-}
+// 		this.onMove.call(this.game, 0, 0);
+// 	}
+// }
 
 class CannonHelper{
     constructor(scene){

@@ -1,9 +1,13 @@
-const makeWheelBody = function(wheel, wheelMaterial){
+const makeWheelBody = function(wheel, wheelMaterial, side){
 	var cylinderShape = new CANNON.Cylinder(wheel.radius, wheel.radius, wheel.radius / 2, 20);
-	var wheelBody = new CANNON.Body({mass: 1, material: wheelMaterial});
+	var wheelBody = new CANNON.Body({mass: 100, material: wheelMaterial});
 
 	var qAngle = new CANNON.Quaternion();
-	qAngle.setFromAxisAngle(new CANNON.Vec3(0, 1, 0), Math.PI / 2);
+	if(side == 'right'){
+		qAngle.setFromAxisAngle(new CANNON.Vec3(0, 1, 0), 3 * Math.PI / 2);
+	} else if(side == 'left'){
+		qAngle.setFromAxisAngle(new CANNON.Vec3(0, 1, 0), Math.PI / 2);
+	}
 
 	wheelBody.addShape(cylinderShape, new CANNON.Vec3(), qAngle);
 
