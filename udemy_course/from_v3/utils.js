@@ -20,10 +20,25 @@ const makeLandscape = function(){
 	//make little mountains
 	let sizeX = 128, sizeY = 128;
 
+	seedX = 10 + parseInt(Math.random()*10)
+	seedY = 10 + parseInt(Math.random()*10)
+	xUnit = sizeX/seedX
+	yUnit = sizeY/seedY
+	var seed = []
+	var lastSeed = Math.random()*12-6
+	for(var i = 0; i < seedY; i++){
+		seed.push([])
+		for(var j = 0; j < seedX; j++){
+			seed[i].push(lastSeed + Math.random()*4-2)
+			lastSeed = seed[i][seed[i].length-1]
+		}
+	}
+
 	for (let i = 0; i < sizeX; i++) {
 		heightMatrix.push([]);
 		for (var j = 0; j < sizeY; j++) {
-			var height = Math.cos(i / sizeX * Math.PI * 5) * Math.cos(j/sizeY * Math.PI * 5) * 2 + 2;
+			var seedVal = seed[parseInt(Math.floor(i/yUnit))][parseInt(Math.floor(j/xUnit))]
+			var height = Math.cos(i / sizeX * Math.PI * 5) * Math.cos(j/sizeY * Math.PI * 5) * seedVal + 2;
 			// var height = Math.cos(i / sizeX * Math.PI * 5) * Math.cos(j/sizeY * Math.PI * 5) * 2 + 2;
 			if(i === 0 || i === sizeX-1 || j===0 || j === sizeY-1){
 				height = 3;

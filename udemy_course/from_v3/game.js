@@ -10,7 +10,7 @@ class Game{
 		this.fixedTimeStep = 1.0/60.0;
 
 		this.camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 2000 );
-		this.camera.position.set( 0, 5, 10 );
+		this.camera.position.set( 0, 20, 10 );
 
 		this.scene = new THREE.Scene();
 		this.scene.background = new THREE.Color( 0xa0a0a0 );
