@@ -29,7 +29,8 @@ class Game{
 		this.js = {
 			forward:0,
 			turn:0,
-			eBrake: false
+			eBrake: false,
+			reversing: false
 		};
 
 		this.clock = new THREE.Clock();
@@ -57,9 +58,8 @@ class Game{
 		this.proxies = {}
 		this.checkpoints = []
 		this.assets;
-		this.car = {
-			
-		}
+		this.car = {}
+		this.obstacles = []
 
 		this.loadAssets(this.initPhysics.bind(this));
 		
@@ -102,7 +102,7 @@ class Game{
 		
 		world.broadphase = new CANNON.SAPBroadphase(world);
 		world.gravity.set(0, -10, 0);
-		world.defaultContactMaterial.friction = 0;
+		world.defaultContactMaterial.friction = 1;
 
 		const groundMaterial = new CANNON.Material("groundMaterial");
 		const wheelMaterial = new CANNON.Material("wheelMaterial");
@@ -172,19 +172,12 @@ class Game{
 
 		const wheelBodies = [];
 		vehicle.wheelInfos.forEach((wheel, i)=>{
-			// const cylinderShape = new CANNON.Cylinder(wheel.radius, wheel.radius, wheel.radius / 2, 20);
-			// const wheelBody = new CANNON.Body({ mass: 1, material: wheelMaterial });
-			// const q = new CANNON.Quaternion();
-			// q.setFromAxisAngle(new CANNON.Vec3(0, 1, 0), Math.PI / 2);
-			// wheelBody.addShape(cylinderShape, new CANNON.Vec3(), q);
 			let wheelBody
 			if(i == 2 || i == 4){
 				wheelBody = makeWheelBody(wheel, wheelMaterial, 'left')
-				// wheelBody = makeWheelBody(wheel, wheelMaterial, 'right')
 			} else {
 				wheelBody = makeWheelBody(wheel, wheelMaterial, 'left')
 			}
-			// this.helper.addVisual(wheelBody, 'wheel')
 			wheelBody.threemesh = this.car.wheels[i]
 			wheelBodies.push(wheelBody);
 
@@ -204,9 +197,31 @@ class Game{
 		
 		this.vehicle = vehicle;
 
-		var hfLandscape = makeLandscape()
-		world.add(hfLandscape);
-		this.helper.addVisual(hfLandscape, 'landscape');
+		var plane = makePlane()
+		world.add(plane);
+		this.helper.addVisual(plane, 'plane');
+
+		var box = makeCubeObstacle(new CANNON.Vec3(8,4,5))
+		this.obstacles.push(box)
+		world.add(box)
+		this.helper.addVisual(box, 'box', new THREE.MeshLambertMaterial({color: 0x00ff00}))
+
+		var lilBox0 = makeCubeObstacle(new CANNON.Vec3(10,10,10), new CANNON.Vec3(0.2, 0.2, 0.2), 10)
+		var lilBox1 = makeCubeObstacle(new CANNON.Vec3(11,10,10), new CANNON.Vec3(0.2, 0.2, 0.2), 10)
+		var lilBox2 = makeCubeObstacle(new CANNON.Vec3(15,10,10), new CANNON.Vec3(0.2, 0.2, 0.2), 10)
+		var lilBox3 = makeCubeObstacle(new CANNON.Vec3(20,10,10), new CANNON.Vec3(0.2, 0.2, 0.2), 10)
+		var lilBox4 = makeCubeObstacle(new CANNON.Vec3(30,10,10), new CANNON.Vec3(0.2, 0.2, 0.2), 10)
+		var lilBoxes = [lilBox0,lilBox1,lilBox2,lilBox3,lilBox4]
+		this.obstacles = this.obstacles.concat(lilBoxes)
+		lilBoxes.forEach((bx, i)=>{
+			world.add(bx)
+			var r = parseInt(Math.random()*255)
+			var g = parseInt(Math.random()*255)
+			var b = parseInt(Math.random()*255)
+			var randColor = 'rgb('+r+','+g+','+b+')'
+			this.helper.addVisual(bx, 'lilBox'+i, new THREE.MeshLambertMaterial({color: randColor}))
+		})
+		
 		
 		if(this.debugPhysics){
 			this.debugRenderer = new THREE.CannonDebugRenderer(this.scene, this.world)
@@ -214,12 +229,6 @@ class Game{
 
 		this.animate();
 	}
-	
-	// joystickCallback( forward, turn, eBrake ){
-	// 	this.js.forward = forward;
-	// 	this.js.turn = -turn;
-	// 	this.js.eBrake = eBrake
-	// }
 
 	keydown(evt){
 		if(evt.code == 'KeyW'){
@@ -251,41 +260,68 @@ class Game{
 		}
 	}
 		
-    updateDrive(forward=this.js.forward, turn=this.js.turn, eBrake=this.js.eBrake){
+    updateDrive(forward=this.js.forward, turn=this.js.turn, eBrake=this.js.eBrake, reversing=this.js.reversing){
 		
 		const maxSteerVal = 0.8;
 		// const maxSteerVal = 0.5;
-        const maxForce = 5000;
-        const brakeForce = 300;
+        const maxForce = 8000;
+        const brakeForce = 200;
+        const reverseForce = -1000
 		 
 		const force = maxForce * forward;
 		const steer = maxSteerVal * turn;
 
-		if (forward > 0){
+		const releaseBrake = ()=>{
 			this.vehicle.setBrake(0, 0);
 			this.vehicle.setBrake(0, 1);
 			this.vehicle.setBrake(0, 2);
 			this.vehicle.setBrake(0, 3);
+		}
 
-			this.vehicle.applyEngineForce(force, 2);
-			this.vehicle.applyEngineForce(force, 3);
-			this.vehicle.applyEngineForce(force, 1);
-			this.vehicle.applyEngineForce(force, 0);
-	 	} else if(forward < 0){
-			this.vehicle.setBrake(brakeForce, 0);
-			this.vehicle.setBrake(brakeForce, 1);
-			this.vehicle.setBrake(brakeForce, 2);
-			this.vehicle.setBrake(brakeForce, 3);
-		} else {
-			this.vehicle.setBrake(0, 0);
-			this.vehicle.setBrake(0, 1);
-			this.vehicle.setBrake(0, 2);
-			this.vehicle.setBrake(0, 3);
-
+		const killEngine = () =>{
 			this.vehicle.applyEngineForce(0, 2);
 			this.vehicle.applyEngineForce(0, 3);
 			this.vehicle.applyEngineForce(0, 1);
 			this.vehicle.applyEngineForce(0, 0);
+		}
+
+		const applyAWD = ()=>{
+			this.vehicle.applyEngineForce(force, 2);
+			this.vehicle.applyEngineForce(force, 3);
+			this.vehicle.applyEngineForce(force, 1);
+			this.vehicle.applyEngineForce(force, 0);
+			this.js.reversing = false
+		}
+
+		const brake = ()=>{
+			this.vehicle.setBrake(brakeForce, 0);
+			this.vehicle.setBrake(brakeForce, 1);
+			this.vehicle.setBrake(brakeForce, 2);
+			this.vehicle.setBrake(brakeForce, 3);
+			this.js.reversing = false
+		}
+
+		const reverse = ()=>{
+			this.vehicle.applyEngineForce(reverseForce, 0)
+			this.vehicle.applyEngineForce(reverseForce, 1)
+			this.vehicle.applyEngineForce(reverseForce, 2)
+			this.vehicle.applyEngineForce(reverseForce, 3)
+			this.js.reversing = true
+		}
+
+		if (forward > 0){
+			releaseBrake()
+			applyAWD()
+	 	} else if(forward < 0){
+	 		if(parseInt(this.vehicle.chassisBody.velocity.length()) != 0 && !reversing){
+				brake()
+			} else {
+				releaseBrake()
+				reverse()
+			}
+		} else {
+			releaseBrake()
+			killEngine();
 		}
 
 		if(eBrake){
@@ -420,11 +456,9 @@ class CannonHelper{
 		return new CANNON.ConvexPolyhedron(vertices, faces);
 	}
     
-    addVisual(body, name, castShadow=true, receiveShadow=true){
+    addVisual(body, name, material=(new THREE.MeshLambertMaterial({color:0x888888})), castShadow=true, receiveShadow=true){
 		body.name = name;
-		if (this.currentMaterial === undefined){
-			this.currentMaterial = new THREE.MeshLambertMaterial({color:0x888888});
-		}
+		this.material = material
 		if (this.settings === undefined){
 			this.settings = {
 				stepFrequency: 60,
@@ -471,7 +505,7 @@ class CannonHelper{
 	
 	shape2Mesh(body, castShadow, receiveShadow){
 		const obj = new THREE.Object3D();
-		const material = this.currentMaterial;
+		const material = this.material
 		const game = this;
 		let index = 0;
 		

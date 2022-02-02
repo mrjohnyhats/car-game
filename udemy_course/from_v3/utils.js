@@ -76,3 +76,22 @@ const makeLandscape = function(){
 	hfBody.quaternion.setFromAxisAngle( new CANNON.Vec3(1,0,0), -Math.PI/2);
 	return hfBody
 }
+
+const makePlane = function(){
+	var shape = new CANNON.Cylinder(100, 100, 3, 40)
+	// var shape = new CANNON.Box(new CANNON.Vec3(100, 3, 100))
+	var body = new CANNON.Body({mass: 0})
+	body.addShape(shape)
+	body.position.set(0,0,0)
+	body.quaternion.setFromAxisAngle(new CANNON.Vec3(1,0,0), Math.PI/2)
+	// body.quaternion.setFromAxisAngle(new CANNON.Vec3(1,0,0), 0)
+	return body
+}
+
+const makeCubeObstacle = function(position=new CANNON.Vec3(0,0,0), halfDims=new CANNON.Vec3(5,5,5), mass=100){
+	var shape = new CANNON.Box(halfDims)
+	var body = new CANNON.Body({mass: mass})
+	body.addShape(shape)
+	body.position = position
+	return body
+}
