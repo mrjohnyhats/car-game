@@ -6,7 +6,7 @@ class Game{
 		
 		this.stats;
 		this.debug = true;
-		this.debugPhysics = true;
+		this.debugPhysics = false;
 		this.fixedTimeStep = 1.0/60.0;
 
 		this.camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 2000 );
@@ -41,7 +41,6 @@ class Game{
 		window.addEventListener('resize', ()=>{ this.onWindowResize(); }, false );
 		window.addEventListener('keydown', this.keydown.bind(this))
 		window.addEventListener('keyup', this.keyup.bind(this))
-
 		
 
 		// stats
@@ -49,11 +48,6 @@ class Game{
 			this.stats = new Stats();
 			this.container.appendChild( this.stats.dom );
 		}
-		
-		// this.joystick = new JoyStick({
-		// 	game:this,
-		// 	onMove:this.joystickCallback
-		// });
 
 		this.proxies = {}
 		this.checkpoints = []
@@ -90,7 +84,6 @@ class Game{
 				}
 			})
 
-			this.assets = object
 			this.scene.add(object)
 			afterCB()
 		})
@@ -199,18 +192,18 @@ class Game{
 
 		var plane = makePlane()
 		world.add(plane);
-		this.helper.addVisual(plane, 'plane');
+		this.helper.addVisual(plane, 'plane', new THREE.MeshLambertMaterial(0x00));
 
 		var box = makeCubeObstacle(new CANNON.Vec3(8,4,5))
 		this.obstacles.push(box)
 		world.add(box)
 		this.helper.addVisual(box, 'box', new THREE.MeshLambertMaterial({color: 0x00ff00}))
 
-		var lilBox0 = makeCubeObstacle(new CANNON.Vec3(10,10,10), new CANNON.Vec3(0.2, 0.2, 0.2), 10)
-		var lilBox1 = makeCubeObstacle(new CANNON.Vec3(11,10,10), new CANNON.Vec3(0.2, 0.2, 0.2), 10)
-		var lilBox2 = makeCubeObstacle(new CANNON.Vec3(15,10,10), new CANNON.Vec3(0.2, 0.2, 0.2), 10)
-		var lilBox3 = makeCubeObstacle(new CANNON.Vec3(20,10,10), new CANNON.Vec3(0.2, 0.2, 0.2), 10)
-		var lilBox4 = makeCubeObstacle(new CANNON.Vec3(30,10,10), new CANNON.Vec3(0.2, 0.2, 0.2), 10)
+		var lilBox0 = makeCubeObstacle(new CANNON.Vec3(10,10,10), new CANNON.Vec3(1,1,1), 10)
+		var lilBox1 = makeCubeObstacle(new CANNON.Vec3(11,10,10), new CANNON.Vec3(1,1,1), 10)
+		var lilBox2 = makeCubeObstacle(new CANNON.Vec3(15,10,10), new CANNON.Vec3(1,1,1), 10)
+		var lilBox3 = makeCubeObstacle(new CANNON.Vec3(20,10,10), new CANNON.Vec3(1,1,1), 10)
+		var lilBox4 = makeCubeObstacle(new CANNON.Vec3(30,10,10), new CANNON.Vec3(1,1,1), 10)
 		var lilBoxes = [lilBox0,lilBox1,lilBox2,lilBox3,lilBox4]
 		this.obstacles = this.obstacles.concat(lilBoxes)
 		lilBoxes.forEach((bx, i)=>{
@@ -405,7 +398,7 @@ class CannonHelper{
 
         light.castShadow = true;
 
-        const lightSize = 30;
+        const lightSize = 10;
         light.shadow.camera.near = 1;
         light.shadow.camera.far = 50;
         light.shadow.camera.left = light.shadow.camera.bottom = -lightSize;

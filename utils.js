@@ -1,3 +1,28 @@
+const loader = new THREE.FBXLoader()
+
+let magnetMesh;
+
+loader.load('assets/magnet.fbx', (object)=>{
+	object.traverse((child)=>{
+		if(child.name == 'magnet'){
+			magnetMesh = child
+			magnetmesh.castShadow = true
+		}
+	})
+})
+
+const createCannonTrimesh = function(geometry){
+	// if (!geometry.isBufferGeometry) return null;
+	
+	const vertices = geometry.vertices;
+	let indices = [];
+	for(let i=0; i<vertices.length; i++){
+		indices.push(i);
+	}
+	
+	return new CANNON.Trimesh(vertices, indices);
+}
+
 const makeWheelBody = function(wheel, wheelMaterial, side){
 	var cylinderShape = new CANNON.Cylinder(wheel.radius, wheel.radius, wheel.radius / 2, 20);
 	var wheelBody = new CANNON.Body({mass: 100, material: wheelMaterial});
@@ -46,25 +71,6 @@ const makeLandscape = function(){
 			heightMatrix[i].push(height);
 		}
 	}
-	// //make big mountain
-	// for(let i = 30; i < 90; i++){
-	// 	for(let j = 30; j < 90; j++){
-	// 		var heightAddition = Math.cos((i-60)/90*3/2*Math.PI) * Math.cos((j-60)/90*3/2*Math.PI)*10
-	// 		heightMatrix[i][j] += heightAddition
-	// 	}
-	// }
-
-	// let bigHeightMatrix = []
-	// for(let i = 0; i < 512; i++){
-	// 	bigHeightMatrix.push([])
-	// 	for(let j = 0; j < 512; j++){
-	// 		if(i > 100 && i < 228 && j > 100 && j < 228){
-	// 			bigHeightMatrix[i].push(heightMatrix[i-100][j-100])
-	// 		} else {
-	// 			bigHeightMatrix[i].push(1)
-	// 		}
-	// 	}
-	// }
 
 	var hfShape = new CANNON.Heightfield(heightMatrix, {
 		elementSize: 2
@@ -78,7 +84,7 @@ const makeLandscape = function(){
 }
 
 const makePlane = function(){
-	var shape = new CANNON.Cylinder(100, 100, 3, 40)
+	var shape = new CANNON.Cylinder(200, 200, 3, 40)
 	// var shape = new CANNON.Box(new CANNON.Vec3(100, 3, 100))
 	var body = new CANNON.Body({mass: 0})
 	body.addShape(shape)
@@ -88,10 +94,28 @@ const makePlane = function(){
 	return body
 }
 
-const makeCubeObstacle = function(position=new CANNON.Vec3(0,0,0), halfDims=new CANNON.Vec3(5,5,5), mass=100){
-	var shape = new CANNON.Box(halfDims)
+
+const cannonFromMesh = function({mesh=(new THREE.BoxGeometry(2,2,2)), halfDims=(new CANNON.Vec3(5,5,5)), position=(new CANNON.Vec3(0,0,0)), scale=1, mass=50}={}){
+	console.log(mesh)
+	var shape = createCannonTrimesh(mesh.geometry)
 	var body = new CANNON.Body({mass: mass})
 	body.addShape(shape)
 	body.position = position
 	return body
 }
+
+const makeCubeObstacle = function(position=(new CANNON.Vec3(0,0,0)), halfDims=(new CANNON.Vec3(5,5,5)), mass=100){
+	try{
+		return cannonFromMesh({halfDims:halfDims,position:position,mass:mass})
+	} catch(exp) {
+		console.error(exp)
+	}
+}
+
+// const makeCubeObstacle = function(position=new CANNON.Vec3(0,0,0), halfDims=new CANNON.Vec3(5,5,5), mass=100){
+// 	var shape = new CANNON.Box(halfDims)
+// 	var body = new CANNON.Body({mass: mass})
+// 	body.addShape(shape)
+// 	body.position = position
+// 	return body
+// }
