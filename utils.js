@@ -6,21 +6,85 @@ loader.load('assets/magnet.fbx', (object)=>{
 	object.traverse((child)=>{
 		if(child.name == 'magnet'){
 			magnetMesh = child
-			magnetmesh.castShadow = true
+			magnetMesh.castShadow = true
 		}
 	})
 })
 
-const createCannonTrimesh = function(geometry){
-	// if (!geometry.isBufferGeometry) return null;
+// const createCannonTrimesh = function(geometry){
+// 	// if (!geometry.isBufferGeometry) return null;
+// 	const vertices = geometry.vertices;
+// 	let indices = [];
+// 	for(let i=0; i<vertices.length; i++){
+// 		indices.push(i);
+// 	}
 	
-	const vertices = geometry.vertices;
-	let indices = [];
-	for(let i=0; i<vertices.length; i++){
-		indices.push(i);
+// 	return new CANNON.Trimesh(vertices, indices);
+// }
+
+const createCannonConvex = function(geometry){
+	if (!geometry.isBufferGeometry) return null;
+
+	// // geometry = geometry.toNonIndexed()
+	// // geometry = THREE.BufferGeometryUtils.mergeVertices(geometry)
+
+	// const floats = geometry.attributes.position.array;
+	// console.log(floats)
+	// const vertices = [];
+	// const faces = [];
+	// let face = [];
+
+	// for(let i=0; i<floats.length; i+=3){
+	// 	vertices.push(new CANNON.Vec3(floats[i], floats[i+1], floats[i+2]) );
+
+	// 	if(geometry.index.count == 0){
+	// 		face.push(index++);
+	// 		if (face.length==3){
+	// 			faces.push(face);
+	// 			face = [];
+	// 		}
+	// 	}
+	// }
+	// if(geometry.index.count > 0){
+	// 	geometry.index.array.forEach((i)=>{
+	// 		face.push(i)
+	// 		if(face.length == 3){
+	// 			faces.push(face)
+	// 			face = []
+	// 		}
+	// 	})
+	// }
+	// console.log(vertices)
+	// console.log(faces)
+	// console.log(new CANNON.ConvexPolyhedron(vertices, faces))
+	// return new CANNON.ConvexPolyhedron(vertices, faces);
+
+
+	var newGeom = new THREE.BufferGeometry()
+	geometry = geometry.toNonIndexed()
+	newGeom.setAttribute('position', geometry.getAttribute('position'))
+
+	newGeom = THREE.BufferGeometryUtils.mergeVertices(newGeom)
+
+	var vertices = newGeom.attributes.position.array
+	var faces = newGeom.index.array
+
+	var newVerts = []
+	var newFaces = []
+
+	for(var i = 0; i < vertices.length; i+=3){
+		newVerts.push(new CANNON.Vec3(vertices[i], vertices[i+1], vertices[i+2]))
 	}
-	
-	return new CANNON.Trimesh(vertices, indices);
+
+	for(var i = 0; i < faces.length; i+=3){
+		newFaces.push([faces[i], faces[i+1], faces[i+2]])
+	}
+
+	var out = new CANNON.ConvexPolyhedron(newVerts, newFaces)
+	out.computeNormals()
+	out.computeEdges()
+	// out.computeWorldFaceNormals()
+	return new CANNON.ConvexPolyhedron(newVerts, newFaces)
 }
 
 const makeWheelBody = function(wheel, wheelMaterial, side){
@@ -84,20 +148,34 @@ const makeLandscape = function(){
 }
 
 const makePlane = function(){
-	var shape = new CANNON.Cylinder(200, 200, 3, 40)
+	var shape = new CANNON.Cylinder(120, 120, 5, 40)
 	// var shape = new CANNON.Box(new CANNON.Vec3(100, 3, 100))
-	var body = new CANNON.Body({mass: 0})
+	var body = new CANNON.Body({mass: 0, collisionFilterMask: 1, collisionFilterGroup: 1})
 	body.addShape(shape)
 	body.position.set(0,0,0)
 	body.quaternion.setFromAxisAngle(new CANNON.Vec3(1,0,0), Math.PI/2)
 	// body.quaternion.setFromAxisAngle(new CANNON.Vec3(1,0,0), 0)
+	console.log(body)
 	return body
 }
 
 
-const cannonFromMesh = function({mesh=(new THREE.BoxGeometry(2,2,2)), halfDims=(new CANNON.Vec3(5,5,5)), position=(new CANNON.Vec3(0,0,0)), scale=1, mass=50}={}){
-	console.log(mesh)
-	var shape = createCannonTrimesh(mesh.geometry)
+const cannonFromMesh = function({mesh=(new THREE.BoxGeometry(2,2,2)), halfDims=(new CANNON.Vec3(5,5,5)), position=(new CANNON.Vec3(0,2,0)), scale=1, mass=50}={}){
+	if(!mesh.isBufferGeometry){
+		mesh = new THREE.BufferGeometry(mesh)
+	}
+
+	// var vertices = []
+	// mesh.vertices.forEach((v)=>{
+	// 	vertices.push(new CANNON.Vec3(v.x,v.y,v.z))
+	// })
+	// faces = []
+	// mesh.faces.forEach((face)=>{
+	// 	faces.push([face.a,face.b,face.c])
+	// })
+	// var shape = new CANNON.ConvexPolyhedron(vertices, faces)
+	var shape = createCannonConvex(mesh)
+	// var shape = createCannonTrimesh(mesh)
 	var body = new CANNON.Body({mass: mass})
 	body.addShape(shape)
 	body.position = position
@@ -106,7 +184,9 @@ const cannonFromMesh = function({mesh=(new THREE.BoxGeometry(2,2,2)), halfDims=(
 
 const makeCubeObstacle = function(position=(new CANNON.Vec3(0,0,0)), halfDims=(new CANNON.Vec3(5,5,5)), mass=100){
 	try{
-		return cannonFromMesh({halfDims:halfDims,position:position,mass:mass})
+		var r = cannonFromMesh({mesh:(new THREE.BoxGeometry(halfDims.x,halfDims.y,halfDims.z)),halfDims:halfDims,position:position,mass:mass})
+		console.log(r)
+		return r
 	} catch(exp) {
 		console.error(exp)
 	}
@@ -114,6 +194,7 @@ const makeCubeObstacle = function(position=(new CANNON.Vec3(0,0,0)), halfDims=(n
 
 // const makeCubeObstacle = function(position=new CANNON.Vec3(0,0,0), halfDims=new CANNON.Vec3(5,5,5), mass=100){
 // 	var shape = new CANNON.Box(halfDims)
+// 	console.log(shape)
 // 	var body = new CANNON.Body({mass: mass})
 // 	body.addShape(shape)
 // 	body.position = position

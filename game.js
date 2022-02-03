@@ -6,7 +6,7 @@ class Game{
 		
 		this.stats;
 		this.debug = true;
-		this.debugPhysics = false;
+		this.debugPhysics = true;
 		this.fixedTimeStep = 1.0/60.0;
 
 		this.camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 2000 );
@@ -194,10 +194,10 @@ class Game{
 		world.add(plane);
 		this.helper.addVisual(plane, 'plane', new THREE.MeshLambertMaterial(0x00));
 
-		var box = makeCubeObstacle(new CANNON.Vec3(8,4,5))
+		var box = makeCubeObstacle(new CANNON.Vec3(0,50,-6))
 		this.obstacles.push(box)
 		world.add(box)
-		this.helper.addVisual(box, 'box', new THREE.MeshLambertMaterial({color: 0x00ff00}))
+		this.helper.addVisual(box, 'box', new THREE.MeshLambertMaterial({color: 0x00aabb}))
 
 		var lilBox0 = makeCubeObstacle(new CANNON.Vec3(10,10,10), new CANNON.Vec3(1,1,1), 10)
 		var lilBox1 = makeCubeObstacle(new CANNON.Vec3(11,10,10), new CANNON.Vec3(1,1,1), 10)
@@ -216,9 +216,9 @@ class Game{
 		})
 		
 		
-		if(this.debugPhysics){
-			this.debugRenderer = new THREE.CannonDebugRenderer(this.scene, this.world)
-		}
+		// if(this.debugPhysics){
+		// 	this.debugRenderer = new THREE.CannonDebugRenderer(this.scene, this.world)
+		// }
 
 		this.animate();
 	}
@@ -532,85 +532,93 @@ class CannonHelper{
 				break;
 
 			case CANNON.Shape.types.BOX:
-				const box_geometry = new THREE.BoxGeometry(  shape.halfExtents.x*2,
+				const box_geometry = new THREE.BoxGeometry( shape.halfExtents.x*2,
 															shape.halfExtents.y*2,
 															shape.halfExtents.z*2 );
 				mesh = new THREE.Mesh( box_geometry, material );
 				break;
 
 			case CANNON.Shape.types.CONVEXPOLYHEDRON:
-				const geo = new THREE.Geometry();
+				const geo = new THREE.BufferGeometry();
 
 				// Add vertices
+				var vertices = []
 				shape.vertices.forEach(function(v){
-					geo.vertices.push(new THREE.Vector3(v.x, v.y, v.z));
+					vertices.push(v.x)
+					vertices.push(v.y)
+					vertices.push(v.z)
+					// geo.attributes.position.push(new THREE.Vector3(v.x, v.y, v.z));
 				});
+				geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(vertices), 3))
 
+				var faceIndices = []
 				shape.faces.forEach(function(face){
 					// add triangles
 					const a = face[0];
 					for (let j = 1; j < face.length - 1; j++) {
 						const b = face[j];
 						const c = face[j + 1];
-						geo.faces.push(new THREE.Face3(a, b, c));
+						faceIndices.push(a, b, c);
 					}
 				});
+				geo.setIndex(faceIndices)
+
 				geo.computeBoundingSphere();
-				geo.computeFaceNormals();
+				geo.computeVertexNormals();
 				mesh = new THREE.Mesh( geo, material );
 				break;
 
-			case CANNON.Shape.types.HEIGHTFIELD:
-				geometry = new THREE.Geometry();
+			// case CANNON.Shape.types.HEIGHTFIELD:
+			// 	geometry = new THREE.Geometry();
 
-				v0 = new CANNON.Vec3();
-				v1 = new CANNON.Vec3();
-				v2 = new CANNON.Vec3();
-				for (let xi = 0; xi < shape.data.length - 1; xi++) {
-					for (let yi = 0; yi < shape.data[xi].length - 1; yi++) {
-						for (let k = 0; k < 2; k++) {
-							shape.getConvexTrianglePillar(xi, yi, k===0);
-							v0.copy(shape.pillarConvex.vertices[0]);
-							v1.copy(shape.pillarConvex.vertices[1]);
-							v2.copy(shape.pillarConvex.vertices[2]);
-							v0.vadd(shape.pillarOffset, v0);
-							v1.vadd(shape.pillarOffset, v1);
-							v2.vadd(shape.pillarOffset, v2);
-							geometry.vertices.push(
-								new THREE.Vector3(v0.x, v0.y, v0.z),
-								new THREE.Vector3(v1.x, v1.y, v1.z),
-								new THREE.Vector3(v2.x, v2.y, v2.z)
-							);
-							var i = geometry.vertices.length - 3;
-							geometry.faces.push(new THREE.Face3(i, i+1, i+2));
-						}
-					}
-				}
-				geometry.computeBoundingSphere();
-				geometry.computeFaceNormals();
-				mesh = new THREE.Mesh(geometry, material);
-				break;
+			// 	v0 = new CANNON.Vec3();
+			// 	v1 = new CANNON.Vec3();
+			// 	v2 = new CANNON.Vec3();
+			// 	for (let xi = 0; xi < shape.data.length - 1; xi++) {
+			// 		for (let yi = 0; yi < shape.data[xi].length - 1; yi++) {
+			// 			for (let k = 0; k < 2; k++) {
+			// 				shape.getConvexTrianglePillar(xi, yi, k===0);
+			// 				v0.copy(shape.pillarConvex.vertices[0]);
+			// 				v1.copy(shape.pillarConvex.vertices[1]);
+			// 				v2.copy(shape.pillarConvex.vertices[2]);
+			// 				v0.vadd(shape.pillarOffset, v0);
+			// 				v1.vadd(shape.pillarOffset, v1);
+			// 				v2.vadd(shape.pillarOffset, v2);
+			// 				geometry.vertices.push(
+			// 					new THREE.Vector3(v0.x, v0.y, v0.z),
+			// 					new THREE.Vector3(v1.x, v1.y, v1.z),
+			// 					new THREE.Vector3(v2.x, v2.y, v2.z)
+			// 				);
+			// 				var i = geometry.vertices.length - 3;
+			// 				geometry.faces.push(new THREE.Face3(i, i+1, i+2));
+			// 			}
+			// 		}
+			// 	}
+			// 	geometry.computeBoundingSphere();
+			// 	geometry.computeFaceNormals();
+			// 	mesh = new THREE.Mesh(geometry, material);
+			// 	break;
 
-			case CANNON.Shape.types.TRIMESH:
-				geometry = new THREE.Geometry();
+			// case CANNON.Shape.types.TRIMESH:
+			// 	geometry = new THREE.Geometry();
 
-				v0 = new CANNON.Vec3();
-				v1 = new CANNON.Vec3();
-				v2 = new CANNON.Vec3();
-				for (let i = 0; i < shape.indices.length / 3; i++) {
-					shape.getTriangleVertices(i, v0, v1, v2);
-					geometry.vertices.push(
-						new THREE.Vector3(v0.x, v0.y, v0.z),
-						new THREE.Vector3(v1.x, v1.y, v1.z),
-						new THREE.Vector3(v2.x, v2.y, v2.z)
-					);
-					var j = geometry.vertices.length - 3;
-					geometry.faces.push(new THREE.Face3(j, j+1, j+2));
-				}
-				geometry.computeBoundingSphere();
-				geometry.computeFaceNormals();
-				mesh = new THREE.Mesh(geometry, MutationRecordaterial);
-				break;
+			// 	v0 = new CANNON.Vec3();
+			// 	v1 = new CANNON.Vec3();
+			// 	v2 = new CANNON.Vec3();
+			// 	for (let i = 0; i < shape.indices.length / 3; i++) {
+			// 		shape.getTriangleVertices(i, v0, v1, v2);
+			// 		geometry.vertices.push(
+			// 			new THREE.Vector3(v0.x, v0.y, v0.z),
+			// 			new THREE.Vector3(v1.x, v1.y, v1.z),
+			// 			new THREE.Vector3(v2.x, v2.y, v2.z)
+			// 		);
+			// 		var j = geometry.vertices.length - 3;
+			// 		geometry.faces.push(new THREE.Face3(j, j+1, j+2));
+			// 	}
+			// 	geometry.computeBoundingSphere();
+			// 	geometry.computeFaceNormals();
+			// 	mesh = new THREE.Mesh(geometry, MutationRecordaterial);
+			// 	break;
 
 			default:
 				throw "Visual type not recognized: "+shape.type;
