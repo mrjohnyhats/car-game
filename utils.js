@@ -11,6 +11,14 @@ loader.load('assets/magnet.fbx', (object)=>{
 	})
 })
 
+class CannonBoxData {
+	constructor({halfDims=new CANNON.Vec3(1,1,1), offset=new CANNON.Vec3(0,0,0), quat=new CANNON.Quaternion(1,0,0,0)}={}){
+		this.halfDims = halfDims
+		this.offset = offset
+		this.quat = quat
+	}
+}
+
 // const createCannonTrimesh = function(geometry){
 // 	// if (!geometry.isBufferGeometry) return null;
 // 	const vertices = geometry.vertices;
@@ -59,16 +67,13 @@ const createCannonConvex = function(geometry){
 	// console.log(new CANNON.ConvexPolyhedron(vertices, faces))
 	// return new CANNON.ConvexPolyhedron(vertices, faces);
 
-
+	// console.log(geometry)
 	var newGeom = new THREE.BufferGeometry()
-	geometry = geometry.toNonIndexed()
-	newGeom.setAttribute('position', geometry.getAttribute('position'))
-
-	newGeom = THREE.BufferGeometryUtils.mergeVertices(newGeom)
-
+	newGeom.setAttribute('position', new THREE.BufferAttribute(geometry.attributes.position.array))
+	// geometry = geometry.toNonIndexed()
+	// newGeom.setAttribute('position', new THREE.BufferAttribute(geometry.attributes.position.array))
+	// newGeom = newGeom.toIndexed()
 	var vertices = newGeom.attributes.position.array
-	var faces = newGeom.index.array
-
 	var newVerts = []
 	var newFaces = []
 
@@ -76,10 +81,20 @@ const createCannonConvex = function(geometry){
 		newVerts.push(new CANNON.Vec3(vertices[i], vertices[i+1], vertices[i+2]))
 	}
 
-	for(var i = 0; i < faces.length; i+=3){
-		newFaces.push([faces[i], faces[i+1], faces[i+2]])
-	}
+	if(geometry.index != null){
+		var faces = geometry.index.array
 
+		for(var i = 0; i < faces.length; i+=3){
+			newFaces.push([faces[i], faces[i+1], faces[i+2]])
+		}
+	} else {
+		for(var i = 0; i < newVerts.length; i+=3){
+			newFaces.push([i,i+1,i+2])
+		}
+	}
+	
+	console.log(newFaces)
+	console.log(newVerts)
 	var out = new CANNON.ConvexPolyhedron(newVerts, newFaces)
 	out.computeNormals()
 	out.computeEdges()
@@ -155,48 +170,67 @@ const makePlane = function(){
 	body.position.set(0,0,0)
 	body.quaternion.setFromAxisAngle(new CANNON.Vec3(1,0,0), Math.PI/2)
 	// body.quaternion.setFromAxisAngle(new CANNON.Vec3(1,0,0), 0)
-	console.log(body)
 	return body
 }
 
+const makeRandColor = function(){
+	var r = parseInt(Math.random()*255)
+		var g = parseInt(Math.random()*255)
+		var b = parseInt(Math.random()*255)
+		return 'rgb('+r+','+g+','+b+')'
+}
 
-const cannonFromMesh = function({mesh=(new THREE.BoxGeometry(2,2,2)), halfDims=(new CANNON.Vec3(5,5,5)), position=(new CANNON.Vec3(0,2,0)), scale=1, mass=50}={}){
-	if(!mesh.isBufferGeometry){
-		mesh = new THREE.BufferGeometry(mesh)
-	}
+// const cannonFromMesh = function({mesh=(new THREE.BoxGeometry(2,2,2)), position=(new CANNON.Vec3(0,2,0)), scale=(new CANNON.Vec3(1,1,1)), mass=50}={}){
+// 	if(!mesh.isBufferGeometry){
+// 		mesh = new THREE.BufferGeometry(mesh)
+// 	}
 
-	// var vertices = []
-	// mesh.vertices.forEach((v)=>{
-	// 	vertices.push(new CANNON.Vec3(v.x,v.y,v.z))
-	// })
-	// faces = []
-	// mesh.faces.forEach((face)=>{
-	// 	faces.push([face.a,face.b,face.c])
-	// })
-	// var shape = new CANNON.ConvexPolyhedron(vertices, faces)
-	var shape = createCannonConvex(mesh)
-	// var shape = createCannonTrimesh(mesh)
+// 	// var vertices = []
+// 	// mesh.vertices.forEach((v)=>{
+// 	// 	vertices.push(new CANNON.Vec3(v.x,v.y,v.z))
+// 	// })
+// 	// faces = []
+// 	// mesh.faces.forEach((face)=>{
+// 	// 	faces.push([face.a,face.b,face.c])
+// 	// })
+// 	// var shape = new CANNON.ConvexPolyhedron(vertices, faces)
+// 	var shape = createCannonConvex(mesh)
+// 	// var shape = createCannonTrimesh(mesh)
+// 	var body = new CANNON.Body({mass: mass})
+// 	body.addShape(shape)
+// 	body.position = position
+// 	return body
+// }
+
+// const makeMagnet = function({position=(new CANNON.Vec3(0,2,0)), scale=(new CANNON.Vec3(1,1,1))}={}){
+// 	return cannonFromMesh({mesh: magnetMesh, scale: scale, position: position})
+// }
+
+// // const makeCubeObstacle = function(position=(new CANNON.Vec3(0,0,0)), halfDims=(new CANNON.Vec3(5,5,5)), mass=100){
+// // 	try{
+// // 		var r = cannonFromMesh({mesh:(new THREE.BoxGeometry(halfDims.x,halfDims.y,halfDims.z)),halfDims:halfDims,position:position,mass:mass})
+// // 		console.log(r)
+// // 		return r
+// // 	} catch(exp) {
+// // 		console.error(exp)
+// // 	}
+// // }
+
+const makeCubeObstacle = function(position=new CANNON.Vec3(0,0,0), halfDims=new CANNON.Vec3(5,5,5), mass=100){
+	var shape = new CANNON.Box(halfDims)
 	var body = new CANNON.Body({mass: mass})
 	body.addShape(shape)
 	body.position = position
 	return body
 }
 
-const makeCubeObstacle = function(position=(new CANNON.Vec3(0,0,0)), halfDims=(new CANNON.Vec3(5,5,5)), mass=100){
-	try{
-		var r = cannonFromMesh({mesh:(new THREE.BoxGeometry(halfDims.x,halfDims.y,halfDims.z)),halfDims:halfDims,position:position,mass:mass})
-		console.log(r)
-		return r
-	} catch(exp) {
-		console.error(exp)
-	}
+const makeColliderBody = function(boxData, mass=50, scale=new CANNON.Vec3(1,1,1)){
+	var body = new CANNON.Body({mass: mass})
+	boxData.forEach((box)=>{
+		var halfDims = new CANNON.Vec3(box.halfDims.x*scale.x,box.halfDims.y*scale.y,box.halfDims.z*scale.z)
+		var shape = new CANNON.Box(halfDims)
+		var offset = new CANNON.Vec3(box.offset.x*scale.x,box.offset.y*scale.y,box.offset.z*scale.z)
+		body.addShape(shape, offset, box.quat)
+	})
+	return body
 }
-
-// const makeCubeObstacle = function(position=new CANNON.Vec3(0,0,0), halfDims=new CANNON.Vec3(5,5,5), mass=100){
-// 	var shape = new CANNON.Box(halfDims)
-// 	console.log(shape)
-// 	var body = new CANNON.Body({mass: mass})
-// 	body.addShape(shape)
-// 	body.position = position
-// 	return body
-// }

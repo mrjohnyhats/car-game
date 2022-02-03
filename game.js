@@ -83,9 +83,25 @@ class Game{
 					}
 				}
 			})
-
 			this.scene.add(object)
-			afterCB()
+			loader.load('assets/magnet.fbx', (object)=>{
+
+				this.magnetColliderData = []
+
+				object.traverse((child)=>{
+					if(child.name == 'magnet'){
+						this.magnetMesh = child
+						this.magnetMesh.castShadow = true
+					} else if(child.name.includes('Collider')){
+						child.isVisible = false
+						const position = new CANNON.Vec3(child.position.x,child.position.y,child.position.z)
+						const halfExtents = new CANNON.Vec3(child.scale.x, child.scale.y, child.scale.z)
+						const quaternion = new CANNON.Quaternion(child.quaternion.x,child.quaternion.y,child.quaternion.z,child.quaternion.w)
+						this.magnetColliderData.push(new CannonBoxData(halfExtents,position,quaternion))
+					}
+				})
+				afterCB()
+			})
 		})
 	}
 	
@@ -193,7 +209,6 @@ class Game{
 		var plane = makePlane()
 		world.add(plane);
 		this.helper.addVisual(plane, 'plane', new THREE.MeshLambertMaterial(0x00));
-
 		var box = makeCubeObstacle(new CANNON.Vec3(0,50,-6))
 		this.obstacles.push(box)
 		world.add(box)
@@ -208,13 +223,16 @@ class Game{
 		this.obstacles = this.obstacles.concat(lilBoxes)
 		lilBoxes.forEach((bx, i)=>{
 			world.add(bx)
-			var r = parseInt(Math.random()*255)
-			var g = parseInt(Math.random()*255)
-			var b = parseInt(Math.random()*255)
-			var randColor = 'rgb('+r+','+g+','+b+')'
+			var randColor = makeRandColor()
 			this.helper.addVisual(bx, 'lilBox'+i, new THREE.MeshLambertMaterial({color: randColor}))
 		})
-		
+
+		this.obstacles.push(makeColliderBody(this.magnetColliderData))
+		this.obstacles[this.obstacles.length-1].position = new CANNON.Vec3(0,20,0)
+		world.add(this.obstacles[this.obstacles.length-1])
+		this.obstacles[this.obstacles.length-1].threemesh = this.magnetMesh.clone()
+		this.obstacles[this.obstacles.length-1].threemesh.material = new THREE.MeshPhongMaterial({color: makeRandColor()})
+		this.scene.add(this.obstacles[this.obstacles.length-1].threemesh)
 		
 		// if(this.debugPhysics){
 		// 	this.debugRenderer = new THREE.CannonDebugRenderer(this.scene, this.world)
@@ -648,6 +666,9 @@ class CannonHelper{
     updateBodies(world){
         world.bodies.forEach( function(body){
             if ( body.threemesh != undefined){
+            	// if(body.id == 13){
+            	// 	// console.log(body)
+            	// }
                 body.threemesh.position.copy(body.position);
                 body.threemesh.quaternion.copy(body.quaternion);
             }
