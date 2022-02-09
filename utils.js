@@ -234,3 +234,14 @@ const makeColliderBody = function(boxData, mass=50, scale=new CANNON.Vec3(1,1,1)
 	})
 	return body
 }
+
+const boxDataFromMesh = function(mesh){
+	console.log(mesh)
+	const position = new CANNON.Vec3(mesh.position.x,mesh.position.y,mesh.position.z)
+	const halfDims = new CANNON.Vec3(mesh.scale.x/100, mesh.scale.y/100, mesh.scale.z/100)
+	const quaternion = new CANNON.Quaternion(mesh.quaternion.x,mesh.quaternion.y,mesh.quaternion.z,mesh.quaternion.w)
+	return new CannonBoxData({halfDims,offset:position,quat:quaternion})
+}
+
+
+

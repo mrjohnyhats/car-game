@@ -84,22 +84,18 @@ class Game{
 				}
 			})
 			this.scene.add(object)
-			loader.load('assets/magnet.fbx', (object)=>{
-
-				this.magnetColliderData = []
-
+			loader.load('assets/ramp.fbx', (object)=>{
+				this.ramp = new CustomObject({mass: 100, scale: new CANNON.Vec3(2,2,2)})
+				var colliderData = []
 				object.traverse((child)=>{
-					if(child.name == 'magnet'){
-						this.magnetMesh = child
-						this.magnetMesh.castShadow = true
+					if(child.name == 'Ramp'){
+						this.ramp.setMesh(child)
 					} else if(child.name.includes('Collider')){
 						child.isVisible = false
-						const position = new CANNON.Vec3(child.position.x,child.position.y,child.position.z)
-						const halfExtents = new CANNON.Vec3(child.scale.x, child.scale.y, child.scale.z)
-						const quaternion = new CANNON.Quaternion(child.quaternion.x,child.quaternion.y,child.quaternion.z,child.quaternion.w)
-						this.magnetColliderData.push(new CannonBoxData(halfExtents,position,quaternion))
+						colliderData.push(boxDataFromMesh(child))
 					}
 				})
+				this.ramp.setColliderData(colliderData)
 				afterCB()
 			})
 		})
@@ -227,16 +223,15 @@ class Game{
 			this.helper.addVisual(bx, 'lilBox'+i, new THREE.MeshLambertMaterial({color: randColor}))
 		})
 
-		this.obstacles.push(makeColliderBody(this.magnetColliderData))
-		this.obstacles[this.obstacles.length-1].position = new CANNON.Vec3(0,20,0)
-		world.add(this.obstacles[this.obstacles.length-1])
-		this.obstacles[this.obstacles.length-1].threemesh = this.magnetMesh.clone()
-		this.obstacles[this.obstacles.length-1].threemesh.material = new THREE.MeshPhongMaterial({color: makeRandColor()})
-		this.scene.add(this.obstacles[this.obstacles.length-1].threemesh)
+		this.ramp.body.position = new CANNON.Vec3(0,20,0)
+		world.add(this.ramp.body)
+		this.ramp.body.threemesh.material = new THREE.MeshPhongMaterial({color: makeRandColor()})
+		this.scene.add(this.ramp.body.threemesh)
+		this.obstacles.push(this.ramp.body)
 		
-		// if(this.debugPhysics){
-		// 	this.debugRenderer = new THREE.CannonDebugRenderer(this.scene, this.world)
-		// }
+		if(this.debugPhysics){
+			this.debugRenderer = new THREE.CannonDebugRenderer(this.scene, world)
+		}
 
 		this.animate();
 	}
@@ -383,7 +378,7 @@ class Game{
 		this.updateDrive();
 		this.updateCamera();
 
-		if(this.debugRenderer != undefined){
+		if(this.debugRenderer != undefined && this.debugPhysics){
 			this.debugRenderer.update()
 		}
 		
@@ -393,6 +388,35 @@ class Game{
 			this.stats.update();
 		}
 
+	}
+}
+
+class CustomObject{
+	constructor({mesh, colliderData=[], mass=100, scale=new CANNON.Vec3(1,1,1)}={}){
+		this.scale = scale
+		this.mass = mass
+		if(colliderData.length > 0){
+			this.setColliderData(colliderData)
+		}
+		if(mesh != undefined){
+			this.setMesh(mesh)
+		}
+	}
+	setMesh(mesh){
+		this.mesh = mesh
+		this.mesh.geometry.scale(this.scale.x,this.scale.y,this.scale.z)
+		this.mesh.castShadow = false
+		if(this.body != undefined){
+			this.body.threemesh = this.mesh
+		}
+		window.setTimeout(()=>{console.log(this.body)},500)
+	}
+	setColliderData(colliderData){
+		this.colliderData = colliderData
+		this.body = makeColliderBody(colliderData, this.massmass, this.scale)
+		if(this.mesh != undefined){
+			this.body.threemesh = this.mesh
+		}
 	}
 }
 
