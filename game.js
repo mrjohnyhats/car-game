@@ -223,8 +223,8 @@ class Game{
 			this.helper.addVisual(bx, 'lilBox'+i, new THREE.MeshLambertMaterial({color: randColor}))
 		})
 
+		this.world.add(this.ramp.body)
 		this.ramp.body.position = new CANNON.Vec3(0,20,0)
-		world.add(this.ramp.body)
 		this.ramp.body.threemesh.material = new THREE.MeshPhongMaterial({color: makeRandColor()})
 		this.scene.add(this.ramp.body.threemesh)
 		this.obstacles.push(this.ramp.body)
@@ -413,7 +413,7 @@ class CustomObject{
 	}
 	setColliderData(colliderData){
 		this.colliderData = colliderData
-		this.body = makeColliderBody(colliderData, this.massmass, this.scale)
+		this.body = makeColliderBody(colliderData, this.mass, this.scale)
 		if(this.mesh != undefined){
 			this.body.threemesh = this.mesh
 		}
