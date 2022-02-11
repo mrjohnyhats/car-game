@@ -90,12 +90,16 @@ class Game{
 				object.traverse((child)=>{
 					if(child.name == 'Ramp'){
 						this.ramp.setMesh(child)
-					} else if(child.name.includes('Collider')){
-						child.isVisible = false
-						colliderData.push(boxDataFromMesh(child))
+						this.rampCollider = new CANNON.Body({mass: 100})
+						this.rampCollider.addShape(makeRampShape())
+						this.rampCollider.threemesh = child
 					}
+					//  else if(child.name.includes('Collider')){
+					// 	child.isVisible = false
+					// 	colliderData.push(boxDataFromMesh(child))
+					// }
 				})
-				this.ramp.setColliderData(colliderData)
+				// this.ramp.setColliderData(colliderData)
 				afterCB()
 			})
 		})
@@ -210,24 +214,38 @@ class Game{
 		world.add(box)
 		this.helper.addVisual(box, 'box', new THREE.MeshLambertMaterial({color: 0x00aabb}))
 
-		var lilBox0 = makeCubeObstacle(new CANNON.Vec3(10,10,10), new CANNON.Vec3(1,1,1), 10)
-		var lilBox1 = makeCubeObstacle(new CANNON.Vec3(11,10,10), new CANNON.Vec3(1,1,1), 10)
-		var lilBox2 = makeCubeObstacle(new CANNON.Vec3(15,10,10), new CANNON.Vec3(1,1,1), 10)
-		var lilBox3 = makeCubeObstacle(new CANNON.Vec3(20,10,10), new CANNON.Vec3(1,1,1), 10)
-		var lilBox4 = makeCubeObstacle(new CANNON.Vec3(30,10,10), new CANNON.Vec3(1,1,1), 10)
-		var lilBoxes = [lilBox0,lilBox1,lilBox2,lilBox3,lilBox4]
-		this.obstacles = this.obstacles.concat(lilBoxes)
-		lilBoxes.forEach((bx, i)=>{
-			world.add(bx)
+		var boxes = []
+		for(var i = 0; i < 20; i++){
+			var box = makeCubeObstacle(
+				new CANNON.Vec3(Math.random()*120-60,30+Math.random()*60,Math.random()*120-60), 
+				new CANNON.Vec3(Math.random()*6+2,Math.random()*6+2,Math.random()*6+2),
+				Math.random()*300
+			)
+			boxes.push(box)
+			world.add(box)
 			var randColor = makeRandColor()
-			this.helper.addVisual(bx, 'lilBox'+i, new THREE.MeshLambertMaterial({color: randColor}))
-		})
+			this.helper.addVisual(box, 'box'+i, new THREE.MeshLambertMaterial({color: randColor}))
+		}
 
-		this.world.add(this.ramp.body)
-		this.ramp.body.position = new CANNON.Vec3(0,20,0)
-		this.ramp.body.threemesh.material = new THREE.MeshPhongMaterial({color: makeRandColor()})
-		this.scene.add(this.ramp.body.threemesh)
-		this.obstacles.push(this.ramp.body)
+		// var ramp = makeRampShape()
+		// var rampBody = new CANNON.Body({mass: 100})
+		// rampBody.position = new CANNON.Vec3(0,20,0)
+		// rampBody.addShape(ramp)
+		// this.world.add(rampBody)
+
+
+		// this.world.add(this.ramp.body)
+		// this.ramp.body.position = new CANNON.Vec3(0,20,0)
+		// this.ramp.body.threemesh.material = new THREE.MeshPhongMaterial({color: makeRandColor()})
+		// this.scene.add(this.ramp.body.threemesh)
+		// this.obstacles.push(this.ramp.body)
+		
+		// this.rampCollider.position = new CANNON.Vec3(3,20,0)
+		// this.rampCollider.threemesh.material = new THREE.MeshPhongMaterial({color: makeRandColor()})
+		// this.rampCollider.threemesh.visible = false
+		// this.world.add(this.rampCollider)
+		// this.scene.add(this.rampCollider.threemesh)
+		// this.obstacles.push(this.rampCollider)
 		
 		if(this.debugPhysics){
 			this.debugRenderer = new THREE.CannonDebugRenderer(this.scene, world)
@@ -358,6 +376,10 @@ class Game{
 			this.helper.sun.position.y += 10;
 		}
 	}
+
+	// handleFallingObstacles(){
+		// FOR LATER
+	// }
 								   
 	animate() {
 		const game = this;

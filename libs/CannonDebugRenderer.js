@@ -172,7 +172,6 @@ THREE.CannonDebugRenderer.prototype = {
             geometry.setIndex(indices)
 
             mesh = new THREE.Mesh(geometry, material)
-
             break
 
         case CANNON.Shape.types.TRIMESH:

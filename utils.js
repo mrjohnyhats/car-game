@@ -163,7 +163,7 @@ const makeLandscape = function(){
 }
 
 const makePlane = function(){
-	var shape = new CANNON.Cylinder(120, 120, 5, 40)
+	var shape = new CANNON.Cylinder(200, 200, 5, 40)
 	// var shape = new CANNON.Box(new CANNON.Vec3(100, 3, 100))
 	var body = new CANNON.Body({mass: 0, collisionFilterMask: 1, collisionFilterGroup: 1})
 	body.addShape(shape)
@@ -243,5 +243,133 @@ const boxDataFromMesh = function(mesh){
 	return new CannonBoxData({halfDims,offset:position,quat:quaternion})
 }
 
+const threeToCannonVector = function(tv){
+	return new CANNON.Vec3(tv.x,tv.y,tv.z)
+}
 
+const arrayToCannonVector = function(a){
+	return new CANNON.Vec3(a[0], a[1], a[2])
+}
 
+const indexOf2d = function(array, item){
+	for(var i = 0; i < array.length; i++){
+		if(array[i].length == item.length){
+			for(var j = 0; j < item.length; j++){
+				if(array[i][j] != item[j]){
+					break
+				} else if(j == item.length-1){
+					return i
+				}
+			}
+		}
+	}
+	return -1
+}
+
+// const BufGeoToConPoly = function(geo){
+// 	geo = geo.toNonIndexed()
+// 	var points = geo.getAttribute('position').array
+// 	var vertSize = geo.getAttribute('position').itemSize
+// 	var vertices = []
+// 	points.forEach((p)=>{
+// 		if(vertices.length == 0){
+// 			vertices.push([parseInt(p*100000)/1000])
+// 			return
+// 		}
+
+// 		if(vertices[vertices.length-1].length == vertSize){
+// 			vertices.push([])
+// 		}
+// 		vertices[vertices.length-1].push(parseInt(p*100000)/1000)
+// 	})
+
+// 	var faces = []
+// 	for(var i = 0; i < vertices.length; i+=3){
+// 		faces.push([vertices[i],vertices[i+1],vertices[i+2]])
+// 	}
+
+// 	var simpVertices = []
+// 	vertices.forEach((vert)=>{
+// 		if(indexOf2d(simpVertices,vert) == -1){
+// 			simpVertices.push(vert)
+// 		}
+// 	})
+
+// 	faces.forEach((face, i)=>{
+// 		face.forEach((vert, j)=>{
+// 			faces[i][j] = indexOf2d(simpVertices,vert)
+// 		})
+// 	})
+
+// 	var str = '['
+// 	faces.forEach((v)=>{
+// 		str += ('[')
+// 		str += (v[0])
+// 		str += (',')
+// 		str += (v[1])
+// 		str += (',')
+// 		str += (v[2])
+// 		str += ('],')
+// 	})
+// 	str += (']')
+// 	console.log(str)
+
+// 	var cannonVertices = simpVertices.map(arrayToCannonVector)
+
+// 	return new CANNON.ConvexPolyhedron(cannonVertices, faces)
+// }
+
+const makeRampShape = function(){
+	var modelVertices = [
+		[5,-5,5],
+		[-5,-5,5],
+		[-5,-5,-5],
+		[5,-5,-5],
+		[-15,5,5],
+		[-15,5,-5],
+		[5,5,5],
+		[5,5,-5],
+		[-5,5,5],
+		[-5,5,-5]
+	]
+	var modelFaces = [
+		//top cube
+		[0,1,2],
+		[2,3,0],
+
+		//neg z cube
+		[7,9,2],
+		[2,3,7],
+
+		//neg z side triangle
+		[5,7,3],
+
+		//tilted front face
+		[1,4,5],
+		[1,2,5],
+
+		//pos z side triangle
+		[4,6,0],
+
+		//pos z cube
+		[0,1,8],
+		[8,6,0],
+
+		//pos x cube
+		[0,3,7],
+		[7,6,0],
+
+		//bottom
+		[6,4,5],
+		[5,7,6],
+
+		
+		
+		
+	]
+	var out = new CANNON.ConvexPolyhedron(modelVertices.map(arrayToCannonVector), modelFaces)
+	out.computeEdges()
+	out.computeNormals()
+	// out.computeWorldFaceNormals()
+	return out
+}
