@@ -1,15 +1,5 @@
 const loader = new THREE.FBXLoader()
 
-let magnetMesh;
-
-loader.load('assets/magnet.fbx', (object)=>{
-	object.traverse((child)=>{
-		if(child.name == 'magnet'){
-			magnetMesh = child
-			magnetMesh.castShadow = true
-		}
-	})
-})
 
 class CannonBoxData {
 	constructor({halfDims=new CANNON.Vec3(1,1,1), offset=new CANNON.Vec3(0,0,0), quat=new CANNON.Quaternion(1,0,0,0)}={}){
