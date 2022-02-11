@@ -165,7 +165,8 @@ const makeLandscape = function(){
 const makePlane = function(){
 	var shape = new CANNON.Cylinder(200, 200, 5, 40)
 	// var shape = new CANNON.Box(new CANNON.Vec3(100, 3, 100))
-	var body = new CANNON.Body({mass: 0, collisionFilterMask: 1, collisionFilterGroup: 1})
+	// var body = new CANNON.Body({mass: 0, collisionFilterMask: 1, collisionFilterGroup: 1})
+	var body = new CANNON.Body({mass: 0})
 	body.addShape(shape)
 	body.position.set(0,0,0)
 	body.quaternion.setFromAxisAngle(new CANNON.Vec3(1,0,0), Math.PI/2)
@@ -216,9 +217,9 @@ const makeRandColor = function(){
 // // 	}
 // // }
 
-const makeCubeObstacle = function(position=new CANNON.Vec3(0,0,0), halfDims=new CANNON.Vec3(5,5,5), mass=100){
+const makeCubeObstacle = function(position=new CANNON.Vec3(0,0,0), halfDims=new CANNON.Vec3(5,5,5), bodyOpts){
 	var shape = new CANNON.Box(halfDims)
-	var body = new CANNON.Body({mass: mass})
+	var body = new CANNON.Body(bodyOpts)
 	body.addShape(shape)
 	body.position = position
 	return body
@@ -372,4 +373,10 @@ const makeRampShape = function(){
 	out.computeNormals()
 	// out.computeWorldFaceNormals()
 	return out
+}
+
+const updatePointCounter = function(n){
+	var elem = document.getElementById('points')
+	console.log('updated to '+ n + ' points')
+	elem.innerHTML = n + ' points'
 }

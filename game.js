@@ -54,6 +54,7 @@ class Game{
 		this.assets;
 		this.car = {}
 		this.obstacles = []
+		this.points = 0
 
 		this.loadAssets(this.initPhysics.bind(this));
 		
@@ -209,19 +210,21 @@ class Game{
 		var plane = makePlane()
 		world.add(plane);
 		this.helper.addVisual(plane, 'plane', new THREE.MeshLambertMaterial(0x00));
-		var box = makeCubeObstacle(new CANNON.Vec3(0,50,-6))
-		this.obstacles.push(box)
-		world.add(box)
-		this.helper.addVisual(box, 'box', new THREE.MeshLambertMaterial({color: 0x00aabb}))
 
-		var boxes = []
+		const boxMaterial = new CANNON.Material('boxMaterial')
+		const boxGroundContactMaterial = new CANNON.ContactMaterial(boxMaterial, groundMaterial, {
+			friction: 0,
+			restitution: 0.2,
+		})
+		world.addContactMaterial(boxGroundContactMaterial)
+
 		for(var i = 0; i < 20; i++){
 			var box = makeCubeObstacle(
-				new CANNON.Vec3(Math.random()*120-60,30+Math.random()*60,Math.random()*120-60), 
+				new CANNON.Vec3(Math.random()*220-110,30+Math.random()*60,Math.random()*220-110), 
 				new CANNON.Vec3(Math.random()*6+2,Math.random()*6+2,Math.random()*6+2),
-				Math.random()*300
+				{mass: 1000, material: boxMaterial}
 			)
-			boxes.push(box)
+			this.obstacles.push(box)
 			world.add(box)
 			var randColor = makeRandColor()
 			this.helper.addVisual(box, 'box'+i, new THREE.MeshLambertMaterial({color: randColor}))
@@ -290,7 +293,7 @@ class Game{
 		// const maxSteerVal = 0.5;
         const maxForce = 8000;
         const brakeForce = 200;
-        const reverseForce = -1000
+        const reverseForce = -3000
 		 
 		const force = maxForce * forward;
 		const steer = maxSteerVal * turn;
@@ -377,9 +380,27 @@ class Game{
 		}
 	}
 
-	// handleFallingObstacles(){
-		// FOR LATER
-	// }
+	increasePoints(){
+		this.points++
+		updatePointCounter(this.points)
+	}
+
+	handleFallingObstacles(){
+		var removedIndices = []
+
+		this.obstacles.forEach((o, i)=>{
+			if(o.position.y < -50){
+				console.log('got rid of obstacle')
+				this.world.removeBody(o)
+				removedIndices.push(i)
+				this.increasePoints()
+			}
+		})
+
+		removedIndices.forEach((i)=>{
+			this.obstacles.splice(i, 1)
+		})
+	}
 								   
 	animate() {
 		const game = this;
@@ -396,6 +417,8 @@ class Game{
 		
 		this.world.step(this.fixedTimeStep, dt);
 		this.helper.updateBodies(this.world);
+
+		this.handleFallingObstacles()
 		
 		this.updateDrive();
 		this.updateCamera();
